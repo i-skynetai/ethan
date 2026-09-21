@@ -1,0 +1,179 @@
+"""SQLite task store + per-chat conversation memory."""
+import os, shutil, sqlite3, threading, time
+from .util import ROOT, log
+
+_LOCK = threading.Lock()
+_DB = None
+
+
+# v0.2 renamed the tenant layer from "brain" to "kb": a KB tenant is a KB, and
+# "brain" now means the whole assembly. The CREATE TABLEs below already say `kb`,
+# so a database written by v0.1 needs its columns and its stored KB names brought
+# forward. Idempotent — it checks the current columns and does nothing when done.
+_KB_RENAMES = {"kb-product": "main_kb", "client-kb": "client_kb",
+               "office-local": "office_kb", "personal-local": "personal_kb"}
+
+
+def _migrate_brain_to_kb(d, path):
+    todo = [t for t in ("tasks", "harvests")
+            if d.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{t}'").fetchone()
+            and "brain" in [r[1] for r in d.execute(f"PRAGMA table_info({t})")]]
+    if not todo:
+        return
+    backup = path + ".pre-kb-rename"
+    if not os.path.exists(backup):
+        shutil.copy2(path, backup)
+    for t in todo:
+        d.execute(f"ALTER TABLE {t} RENAME COLUMN brain TO kb")
+        for old, new in _KB_RENAMES.items():
+            d.execute(f"UPDATE {t} SET kb=? WHERE kb=?", (new, old))
+    d.commit()
+    log(f"migrated {', '.join(todo)}: column brain -> kb, KB names renamed. "
+        f"Pre-migration copy: {backup}")
+
+
+def db():
+    global _DB
+    if _DB is None:
+        os.makedirs(os.path.join(ROOT, "state"), exist_ok=True)
+        path = os.path.join(ROOT, "state", "ethan.db")
+        _DB = sqlite3.connect(path, check_same_thread=False)
+        _migrate_brain_to_kb(_DB, path)
+        _DB.execute("""CREATE TABLE IF NOT EXISTS tasks(
+            id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, kind TEXT, kb TEXT,
+            hand TEXT, ask TEXT, state TEXT, result TEXT)""")
+        _DB.execute("""CREATE TABLE IF NOT EXISTS messages(
+            id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, role TEXT, text TEXT)""")
+        # one row per hand invocation — what the console shows as a "session"
+        _DB.execute("""CREATE TABLE IF NOT EXISTS runs(
+            id INTEGER PRIMARY KEY, ts REAL, task_id INTEGER, hand TEXT, repo TEXT,
+            log TEXT, state TEXT, ended REAL)""")
+        # replies waiting to be picked up by a pull-based door (the console)
+        _DB.execute("""CREATE TABLE IF NOT EXISTS replies(
+            id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, text TEXT)""")
+        # audit trail for close-out writes: who decided, where it went, or why not
+        _DB.execute("""CREATE TABLE IF NOT EXISTS harvests(
+            id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, hand TEXT, kb TEXT,
+            filename TEXT, why TEXT, state TEXT)""")
+        _DB.commit()
+    return _DB
+
+
+def reap_orphans():
+    """A killed Ethan leaves tasks/runs stuck at 'running' forever, which would
+    block the close-out gate. Nothing can still be running at startup, so mark
+    them interrupted. Returns how many were reaped."""
+    with _LOCK:
+        d = db()
+        n = d.execute("SELECT COUNT(*) FROM tasks WHERE state='running'").fetchone()[0]
+        n += d.execute("SELECT COUNT(*) FROM runs WHERE state='running'").fetchone()[0]
+        d.execute("UPDATE tasks SET state='interrupted' WHERE state='running'")
+        d.execute("UPDATE runs SET state='interrupted', ended=? WHERE state='running'", (time.time(),))
+        d.commit()
+        return n
+
+
+def add_task(chat_id, kind, kb, hand, ask):
+    with _LOCK:
+        cur = db().execute("INSERT INTO tasks(ts,chat_id,kind,kb,hand,ask,state) VALUES(?,?,?,?,?,?,?)",
+                           (time.time(), str(chat_id), kind, kb, hand, ask, "running"))
+        db().commit()
+        return cur.lastrowid
+
+
+def finish_task(task_id, state, result):
+    with _LOCK:
+        db().execute("UPDATE tasks SET state=?, result=? WHERE id=?", (state, result[:20000], task_id))
+        db().commit()
+
+
+def remember(chat_id, role, text):
+    with _LOCK:
+        db().execute("INSERT INTO messages(ts,chat_id,role,text) VALUES(?,?,?,?)",
+                     (time.time(), str(chat_id), role, text[:4000]))
+        db().commit()
+
+
+def recent(chat_id, n=8):
+    rows = db().execute("SELECT role,text FROM messages WHERE chat_id=? ORDER BY id DESC LIMIT ?",
+                        (str(chat_id), n)).fetchall()
+    return [{"role": r, "content": t} for r, t in reversed(rows)]
+
+
+def last_result(chat_id):
+    """Most recent completed task output for this chat — what a follow-up refers to."""
+    row = db().execute(
+        "SELECT result FROM tasks WHERE chat_id=? AND state='done' AND result IS NOT NULL "
+        "ORDER BY id DESC LIMIT 1", (str(chat_id),)).fetchone()
+    return row[0] if row else None
+
+
+# ── hand runs (what the console calls a session) ────────────────────────────
+def start_run(task_id, hand, repo, log_path):
+    with _LOCK:
+        cur = db().execute("INSERT INTO runs(ts,task_id,hand,repo,log,state) VALUES(?,?,?,?,?,?)",
+                           (time.time(), task_id, hand, repo or "", log_path, "running"))
+        db().commit()
+        return cur.lastrowid
+
+
+def end_run(run_id, state):
+    with _LOCK:
+        db().execute("UPDATE runs SET state=?, ended=? WHERE id=?", (state, time.time(), run_id))
+        db().commit()
+
+
+def recent_runs(n=30):
+    cols = "id,ts,task_id,hand,repo,log,state,ended"
+    rows = db().execute(f"SELECT {cols} FROM runs ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+    return [dict(zip(cols.split(","), r)) for r in rows]
+
+
+def recent_tasks(n=40):
+    cols = "id,ts,chat_id,kind,kb,hand,ask,state"
+    rows = db().execute(f"SELECT {cols} FROM tasks ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+    return [dict(zip(cols.split(","), r)) for r in rows]
+
+
+def task(task_id):
+    cols = "id,ts,chat_id,kind,kb,hand,ask,state,result"
+    row = db().execute(f"SELECT {cols} FROM tasks WHERE id=?", (task_id,)).fetchone()
+    return dict(zip(cols.split(","), row)) if row else None
+
+
+def pending(chat_id=None):
+    """Unfinished work — the close-out gate reads this."""
+    q = "SELECT id,kind,hand,ask FROM tasks WHERE state='running'"
+    args = ()
+    if chat_id is not None:
+        q += " AND chat_id=?"; args = (str(chat_id),)
+    return [dict(zip(("id", "kind", "hand", "ask"), r)) for r in db().execute(q, args).fetchall()]
+
+
+# ── close-out audit ─────────────────────────────────────────────────────────
+def add_harvest(chat_id, hand, kb, filename, why, state):
+    with _LOCK:
+        db().execute("INSERT INTO harvests(ts,chat_id,hand,kb,filename,why,state) "
+                     "VALUES(?,?,?,?,?,?,?)",
+                     (time.time(), str(chat_id), hand, kb, filename, why[:1000], state))
+        db().commit()
+
+
+def recent_harvests(n=25):
+    cols = "id,ts,chat_id,hand,kb,filename,why,state"
+    rows = db().execute(f"SELECT {cols} FROM harvests ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+    return [dict(zip(cols.split(","), r)) for r in rows]
+
+
+# ── pull-based replies (the console polls; Telegram pushes) ─────────────────
+def add_reply(chat_id, text):
+    with _LOCK:
+        db().execute("INSERT INTO replies(ts,chat_id,text) VALUES(?,?,?)",
+                     (time.time(), str(chat_id), text))
+        db().commit()
+
+
+def replies_since(chat_id, after_id=0):
+    rows = db().execute("SELECT id,ts,text FROM replies WHERE chat_id=? AND id>? ORDER BY id",
+                        (str(chat_id), after_id)).fetchall()
+    return [{"id": i, "ts": t, "text": x} for i, t, x in rows]

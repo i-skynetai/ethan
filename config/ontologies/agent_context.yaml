@@ -1,0 +1,259 @@
+name: agent_context
+description: >
+  Ontology for AI-agent working context — designed agent-neutral, so one
+  schema can serve any project knowledge base (product or client).
+  It models two document families. (1) SESSION CONTEXT: hand-over summaries of
+  a working session with any agent (what was asked, what was decided, what went
+  wrong, what was learned, what was produced, what is still open) — the durable
+  memory an agent saves before a session closes, so the next session starts from
+  it. (2) SKILLS: reusable playbooks/procedures an agent can retrieve and follow
+  later — each skill document describes when to use it, the steps, the tools it
+  calls, and its guardrails. Built so an LLM can extract entities and relations
+  from session summaries, harvest notes and skill documents, and so the graph can
+  answer: "which sessions touched project X", "what did we decide about Y and
+  why", "have we hit this error before", "which skill covers this situation",
+  "what is still open", "which skills does this knowledge base hold and what
+  does each need".
+  EXTRACTION GUIDANCE. Naming comes in two kinds. For Agent, Project, Task,
+  Tool, Artifact, Person and Skill: only extract things with a specific proper
+  name, id, or path — never generic nouns or bare acronyms (agent, session,
+  project, task, tool, skill, file, code, script, app, API, UI, AI, LLM, doc,
+  note, plan, system and the like are NOT entities on their own). For Session,
+  Decision, Learning, Problem and OpenItem: the name is a short synthesized
+  phrase capturing the point, taken from the document's own wording where
+  possible. Keep canonical names and casing exactly as written in the source
+  (ticket ids, file paths, skill names, product names). Session documents often
+  carry header lines (Agent:, Project:, Continues:) and skill documents carry
+  a Skill: header line — treat those as the authoritative source for the
+  entities they name, and always prefer such a line over a name you would
+  otherwise compose yourself. Never extract entities from
+  the examples written inside this ontology itself — any name, id or path
+  introduced here with "e.g." is illustrative (PROJ-123, PROJ-1234 and the
+  like), not data.
+
+entity_types:
+  - name: Agent
+    description: >
+      A named AI agent or assistant that performed the work — for example
+      Claude Code, Cursor, Kimi, Codex, Copilot. Only extract when the specific
+      agent product is named (a session summary's "Agent:" header line is the
+      usual source); the generic words "agent", "assistant", "AI" or "model"
+      alone are never an Agent. Use the product name as the entity name, with
+      its official casing. Version or model details live in the description
+      text.
+  - name: Session
+    description: >
+      One working session with an agent: a hand-over summary, a session card, or
+      a close-out note covering a bounded stretch of work. Extract a Session ONLY
+      when this chunk contains a "Session:" header line, and name it verbatim
+      from that line. If the header is not in this chunk, extract no Session and
+      attach the chunk's decisions, learnings and problems to the Project
+      instead. You cannot see the document's title or filename — only this
+      chunk — so never name a Session from a title, and never after a sentence
+      from inside the document. Two nodes with the same name become one, so keep
+      the header specific. The asks, timeline, branch and outcome live in the
+      description text, as does the list of files that were merely read or
+      touched in bulk.
+  - name: Project
+    description: >
+      The named project, product, repository or initiative the work belongs to.
+      A session summary's "Project:" header line is the authoritative source
+      when present. Use the canonical repo or project name exactly as written.
+      Generic words like "the project", "the repo",
+      "the codebase" are never a Project. Purpose and location live in the
+      description text.
+  - name: Task
+    description: >
+      A tracked work item the session addressed: an id from an issue tracker
+      (e.g. "PROJ-1234"), an issue number, or an item the document explicitly
+      marks as a task (a TODO or checklist line with a specific name). The
+      session's own goal or "Asked:" line is part of the Session, never a
+      separate Task. Use the id or exact name as the entity name. Status,
+      priority and outcome live in the description text. Do not invent a Task
+      when the session names none.
+  - name: Decision
+    description: >
+      A decision reached during the work, together with its reason: an approach
+      chosen, an option rejected, a naming or scoping call, a configuration
+      settled. Name it as a short imperative or noun phrase (e.g. "retry the
+      nightly sync with backoff instead of failing fast"). The alternatives
+      considered and the why live in the description text. A fact that appears
+      only as a decision's rationale stays inside the Decision description —
+      extract it as a separate Learning only when the document itself presents
+      it as a standalone finding. Synonyms: choice, call, agreement, conclusion.
+  - name: Problem
+    description: >
+      An error, failure or defect the session actually hit: a bug found, a
+      command that failed, an outage, a wrong result. Name it as a short phrase
+      of the symptom (e.g. "upload rejected with 422"). The root cause and the
+      fix — including whether it was fixed at all — live in the description
+      text. Built so "have we hit this error before" is answerable. Do not
+      extract hypothetical risks the document merely warns about.
+  - name: Learning
+    description: >
+      A captured team learning: a gotcha, a how-things-actually-work fact, a
+      correction of a wrong belief, a pattern worth reusing. Synonyms: lesson
+      learned, insight, gotcha, tip, finding. A measurement counts only when
+      the document frames it as a reusable finding — otherwise it stays in the
+      Session description. Origin (session, ticket, incident) and evidence live
+      in the description text.
+  - name: Skill
+    description: >
+      A reusable, named playbook an agent can retrieve and follow: a
+      slash-command skill, a procedure, a checklist, a runbook, a prompt
+      recipe.
+      NAME. A skill document states its own name on a "Skill:" header line —
+      use that value verbatim, including any leading slash and namespace. If
+      there is no Skill: line in the text in front of you, fall back to the
+      name given in the document's main heading. If NEITHER is present in the
+      text in front of you, do not extract a Skill at all: never invent a
+      descriptive title (a name of the shape "... Process", "... Procedure",
+      "... Workflow" that does not appear in the text is always wrong), and
+      never shorten a namespaced name to its bare last word — for a skill
+      called "/kb:publish" the name is "/kb:publish" and never "publish".
+      A bare word that is merely the verb of a command is not a skill name.
+      ONE PER DOCUMENT. A skill document defines exactly ONE primary Skill.
+      Other skills it names as invoked, compared or superseded are extracted
+      only as relation targets, never as additional primary skills. The
+      section headings inside a skill document — its steps, rules, checklists,
+      inputs, outputs, examples — are NOT separate Skills.
+      NEVER A SKILL. A tool invocation name is a Tool, never a Skill; in
+      particular any name beginning "mcp__" is always a Tool. No name may be
+      extracted as both a Skill and a Tool — decide which one it is. A
+      document that defines a playbook is a Skill, not an Artifact — never
+      both for the same name. The generic word "skill" alone is never a Skill.
+      DESCRIPTION. Everything a future agent needs in order to apply it lives
+      in the description text: WHEN to use it (its trigger phrases), what
+      INPUT it expects, a summary of its STEPS, its GUARDRAILS (what it must
+      never do), which agent(s) it runs on if agent-specific, and its version
+      or owner if stated.
+  - name: Tool
+    description: >
+      A specific named tool, command, service endpoint or API that a skill or
+      session invokes — a CLI name, an MCP tool name, a named service. Use the
+      exact invocation name (e.g. "git", "jq", "files.upload"). Any name
+      beginning "mcp__" is a Tool and never a Skill. The test is how the
+      document treats it: something CALLED in a step is a Tool, something
+      FOLLOWED as a procedure is a Skill — and no name may be extracted as
+      both. Only extract tools that are actually named; the words "tool",
+      "command", "script" or "API" alone are never a Tool.
+  - name: Artifact
+    description: >
+      A concrete file, document or deliverable the session produced or changed:
+      a design doc, a config file, a report, a diagram, a released package. Use
+      the file path or the document's title as the name. What changed in it
+      lives in the description text. Extract only the handful of deliverables
+      the document highlights by name — a bulk list of touched files is
+      summarized in the Session description, not one Artifact each. Files that
+      were only read as context also stay in the Session description.
+  - name: Person
+    description: >
+      A person who asks, decides, reviews or fixes in the work. Use the display
+      name or account handle as written. Never an AI agent or assistant persona
+      — those are Agent. Role and involvement live in the description text.
+  - name: OpenItem
+    description: >
+      Something explicitly left unresolved at the end of a session: an open
+      question, a deferred piece of work, a pending verification, a decision
+      still owed. Name it as a short phrase of the pending thing. Anything
+      under an Open/Pending marker is an OpenItem ONLY — do not also extract it
+      as a Task or Learning; it becomes a Task only when it carries a tracker
+      id. Who owes it and what unblocks it live in the description text. Only
+      extract items the document itself marks as open or pending.
+
+relation_types:
+  - name: PERFORMED_BY
+    description: The session was carried out by this agent.
+    source: Session
+    target: Agent
+  - name: WORKED_ON
+    description: The session did work belonging to this project.
+    source: Session
+    target: Project
+  - name: ADDRESSED_TASK
+    description: The session worked on this tracked task or ticket.
+    source: Session
+    target: Task
+  - name: MADE_DECISION
+    description: This decision was reached in this session.
+    source: Session
+    target: Decision
+  - name: HIT_PROBLEM
+    description: The session encountered this error or failure.
+    source: Session
+    target: Problem
+  - name: CAPTURED_LEARNING
+    description: This learning was established in this session.
+    source: Session
+    target: Learning
+  - name: PRODUCED_ARTIFACT
+    description: The session created or modified this artifact.
+    source: Session
+    target: Artifact
+  - name: INVOKED_SKILL
+    description: The session used this skill to do its work.
+    source: Session
+    target: Skill
+  - name: PRODUCED_SKILL
+    description: The session wrote or substantially revised this skill.
+    source: Session
+    target: Skill
+  - name: SESSION_USED_TOOL
+    description: The session directly invoked this named tool, command or API.
+    source: Session
+    target: Tool
+  - name: LEFT_OPEN
+    description: The session ended with this item still unresolved.
+    source: Session
+    target: OpenItem
+  - name: RESOLVED_OPEN_ITEM
+    description: >
+      This session closed an item an earlier session had left open. "Still
+      open" means a LEFT_OPEN edge with no later RESOLVED_OPEN_ITEM edge.
+    source: Session
+    target: OpenItem
+  - name: CONTINUES
+    description: >
+      This session continues an earlier one — a hand-over chain. Extract only
+      when this chunk contains BOTH a "Session:" header and a "Continues:"
+      header naming the earlier session; a relation is stored only if both its
+      ends come from this same chunk.
+    source: Session
+    target: Session
+  - name: INVOLVED_PERSON
+    description: This person asked, decided or reviewed in the session.
+    source: Session
+    target: Person
+  - name: LEARNING_ABOUT
+    description: >
+      The learning concerns this project. A learning about a specific tool or
+      skill names it in the learning's own description text.
+    source: Learning
+    target: Project
+  - name: MOTIVATED_DECISION
+    description: This learning or finding is what led to this decision.
+    source: Learning
+    target: Decision
+  - name: DECISION_ABOUT
+    description: The decision concerns this project.
+    source: Decision
+    target: Project
+  - name: SKILL_USES_TOOL
+    description: The skill invokes this named tool, command or API in its steps.
+    source: Skill
+    target: Tool
+  - name: SKILL_FOR_PROJECT
+    description: >
+      The skill is specific to this named project. Knowledge-base scoping needs
+      no relation — each knowledge base only holds its own skills — so use this
+      only when the skill document names a specific project it belongs to.
+    source: Skill
+    target: Project
+  - name: SKILL_AUTHORED_BY
+    description: The skill was written or is owned by this person.
+    source: Skill
+    target: Person
+  - name: SKILL_SUPERSEDES
+    description: This skill replaces an older skill; prefer the newer one.
+    source: Skill
+    target: Skill

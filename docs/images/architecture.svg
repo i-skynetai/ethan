@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 780" width="1020" height="780" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+      <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .door{fill:#fffbeb;stroke:#f59e0b;stroke-width:2.5}
+      .svc{fill:#f0fdf4;stroke:#16a34a;stroke-width:2.5}
+      .kbb{fill:#eef2ff;stroke:#6366f1;stroke-width:2.5}
+      .hnd{fill:#fff7ed;stroke:#ea580c;stroke-width:2.5}
+      .st{fill:#f8fafc;stroke:#94a3b8;stroke-width:2}
+      .t{font-size:13px;fill:#0f172a;font-weight:700}
+      .s{font-size:10.5px;fill:#475569}
+      .n{font-size:10.5px;fill:#94a3b8;font-weight:700}
+      .ln{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#a)}
+    </style>
+  </defs>
+  <rect width="1020" height="780" fill="#fafafa"/>
+  <text x="34" y="36" font-size="19" font-weight="700" fill="#0f172a">Ethan — one service, many doors, many KBs, many hands</text>
+  <text x="34" y="58" class="s">One Python process on the laptop. Standard library only. Every arrow crosses a process boundary.</text>
+
+  <!-- DOORS -->
+  <text x="36" y="92" class="n">DOORS — every way in. A door never thinks.</text>
+  <rect class="door" x="34" y="100" width="228" height="76" rx="10"/>
+  <text x="148" y="124" class="t" text-anchor="middle">Telegram</text>
+  <text x="148" y="143" class="s" text-anchor="middle">long-poll, outbound only</text>
+  <text x="148" y="160" class="s" text-anchor="middle">allow-listed user ids</text>
+
+  <rect class="door" x="278" y="100" width="228" height="76" rx="10"/>
+  <text x="392" y="124" class="t" text-anchor="middle">Console</text>
+  <text x="392" y="143" class="s" text-anchor="middle">127.0.0.1:8787</text>
+  <text x="392" y="160" class="s" text-anchor="middle">live run logs, ingest</text>
+
+  <rect class="door" x="522" y="100" width="228" height="76" rx="10"/>
+  <text x="636" y="124" class="t" text-anchor="middle">CLI — bin/ethan</text>
+  <text x="636" y="143" class="s" text-anchor="middle">talks to the console API</text>
+  <text x="636" y="160" class="s" text-anchor="middle">--ingest, --state</text>
+
+  <rect class="door" x="766" y="100" width="220" height="76" rx="10"/>
+  <text x="876" y="124" class="t" text-anchor="middle">Backfill</text>
+  <text x="876" y="143" class="s" text-anchor="middle">past session transcripts</text>
+  <text x="876" y="160" class="s" text-anchor="middle">batch, resumable</text>
+
+  <path class="ln" d="M148,176 L148,206 L470,206 L470,232"/>
+  <path class="ln" d="M392,176 L392,232"/>
+  <path class="ln" d="M636,176 L636,206 L530,206 L530,232"/>
+  <path class="ln" d="M876,176 L876,206 L560,206 L560,232"/>
+  <text x="984" y="196" class="s" text-anchor="end">each door declares which privacy classes it may reach — doors.json</text>
+
+  <!-- ROUTER -->
+  <rect class="svc" x="34" y="234" width="952" height="150" rx="11"/>
+  <text x="510" y="260" class="t" text-anchor="middle" style="font-size:15px">Router — the only part that knows everything</text>
+  <text x="510" y="284" class="s" text-anchor="middle">classify the ask → pick the KB → pull cited context → write the task brief → pick the hand → run → report → offer to keep what was learned</text>
+  <text x="510" y="306" class="s" text-anchor="middle">one small LLM call with a strict JSON schema decides: kind · KB · hand · steps · search query. A keyword hint in the ask pins the KB with no call at all.</text>
+  <text x="510" y="328" class="s" text-anchor="middle">kinds: question · build · review · chain · followup · chat</text>
+  <text x="510" y="352" class="s" text-anchor="middle" font-style="italic">The router reasons. It never edits code, never runs a build, never holds a repo open. That is what hands are for.</text>
+  <text x="510" y="372" class="s" text-anchor="middle">state in SQLite: tasks · messages · runs · replies · harvests — conversations survive a restart</text>
+
+  <path class="ln" d="M300,384 L300,418"/>
+  <path class="ln" d="M720,384 L720,418"/>
+  <text x="300" y="404" class="s" text-anchor="middle">read + write</text>
+  <text x="720" y="404" class="s" text-anchor="middle">spawn per task</text>
+
+  <!-- KBs -->
+  <rect class="kbb" x="34" y="420" width="480" height="186" rx="11"/>
+  <text x="274" y="446" class="t" text-anchor="middle" style="font-size:15px">KBs — what is known</text>
+  <text x="274" y="468" class="s" text-anchor="middle">KB tenants, reached through a thin JSON-RPC client</text>
+  <text x="274" y="485" class="s" text-anchor="middle">search · context search · ingest · job status — never the full tool surface</text>
+  <rect class="st" x="56" y="498" width="200" height="42" rx="8"/>
+  <text x="156" y="516" class="t" text-anchor="middle" style="font-size:11.5px">hosted</text>
+  <text x="156" y="532" class="s" text-anchor="middle">one tenant per KB</text>
+  <rect class="st" x="292" y="498" width="200" height="42" rx="8"/>
+  <text x="392" y="516" class="t" text-anchor="middle" style="font-size:11.5px">local</text>
+  <text x="392" y="532" class="s" text-anchor="middle">never leaves the laptop</text>
+  <text x="274" y="562" class="s" text-anchor="middle">kb-map.json holds URL, tenant, ontology, privacy class, writable flag,</text>
+  <text x="274" y="578" class="s" text-anchor="middle">routing hints and owned repo paths — and the NAME of a token variable, never a token</text>
+  <text x="274" y="596" class="s" text-anchor="middle" font-style="italic">adding a KB is adding one entry</text>
+
+  <!-- HANDS -->
+  <rect class="hnd" x="536" y="420" width="450" height="186" rx="11"/>
+  <text x="761" y="446" class="t" text-anchor="middle" style="font-size:15px">Hands — what acts</text>
+  <text x="761" y="468" class="s" text-anchor="middle">coding agents started through core in the target repo</text>
+  <rect class="st" x="558" y="482" width="406" height="34" rx="8"/>
+  <text x="761" y="504" class="s" text-anchor="middle">claude -p · codex exec · kimi -p — same brief to any of them</text>
+  <text x="761" y="536" class="s" text-anchor="middle">two watchdogs, both enforced by the parent: a hard runtime cap</text>
+  <text x="761" y="552" class="s" text-anchor="middle">and a silence cap, because a stalled hand prints nothing</text>
+  <text x="761" y="574" class="s" text-anchor="middle">output streams to a per-run log the console can watch live</text>
+  <text x="761" y="596" class="s" text-anchor="middle" font-style="italic">core owns each host command, role policy and hand environment</text>
+
+  <!-- RULES -->
+  <rect class="st" x="34" y="626" width="952" height="122" rx="11"/>
+  <text x="510" y="652" class="t" text-anchor="middle">Two enforced checks and the managed-write target</text>
+  <text x="510" y="676" class="s" text-anchor="middle"><tspan font-weight="700">Privacy wall.</tspan> A door may only reach KBs whose class it lists. Unknown door, or no classes declared → nothing. It fails closed.</text>
+  <text x="510" y="698" class="s" text-anchor="middle"><tspan font-weight="700">Redaction.</tspan> Everything bound for a KB passes twelve secret patterns first. A match refuses the write — it does not quietly scrub it.</text>
+  <text x="510" y="720" class="s" text-anchor="middle"><tspan font-weight="700">Managed writes — target.</tspan> Core brokers outward writes; today the selected KB token still reaches the hand, so unattended grants stay off.</text>
+  <text x="510" y="740" class="s" text-anchor="middle" font-style="italic">Approvals may arrive through any verified door. Direct host actions remain host-managed.</text>
+</svg>

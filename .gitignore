@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+config/kb-map.json
+state/
+*.sqlite
+*.db
+.DS_Store
+.pytest_cache/

@@ -1,0 +1,423 @@
+name: personal_life
+description: >
+  Ontology for one person's own knowledge base — the private counterpart to a
+  work or client knowledge base. It covers what someone keeps for themselves:
+  goals they are working toward, their own projects and the sessions they spend
+  on them, applications they have sent, tasks and notes, saved documents, the
+  people and organisations involved, trips and appointments, and summaries of
+  their own email and chat threads. Built so the graph can answer: "what am I
+  working toward", "which applications are still open", "what is left on this
+  project", "what did I learn about this topic and where from", "who did I speak
+  to about this", "have I hit this problem before", "what is coming up".
+
+  NEVER RECORD, whatever the surrounding content: amounts of money, salary or
+  fee figures, account, card or holding details; medical conditions, treatments
+  or test results; a residential address. Omit the sentence entirely — do not
+  paraphrase it, do not summarise around it. This applies to every entity type
+  and to every description you write.
+
+  THIRD PARTIES: for anyone other than the owner, record only professional or
+  practical facts the source states — their name, their role, their
+  organisation, how they are connected. Never record another person's health,
+  relationships, family circumstances, finances, religion, politics or
+  sexuality, even when the source states it plainly.
+
+  THE OWNER'S OWN SENSITIVE MATTERS are recorded only where they themselves
+  write one as a Goal, Decision or Task they want tracked. Never infer one from
+  surrounding content, and never capture one as a Learning or Note.
+
+  EXTRACTION GUIDANCE — read all four rules; they matter more than the type
+  list.
+  (1) TWO KINDS OF NAME. For Project, Person, Organization, Place and Topic:
+  extract only things with a specific proper name, copied exactly as written,
+  casing included. Generic nouns are never entities — project, research, note,
+  task, goal, person, company, place, trip, document, topic, plan, idea, thing
+  and the like. For Session, Goal, Task, Decision, Problem, Learning, Note,
+  Event, Message, Application, Document and Artifact: you write a short name
+  yourself, in the canonical shape given in that type's description.
+  (2) EVERY NAME YOU WRITE MUST BE UNIQUE ON ITS OWN. Two nodes with the same
+  name become one node, so a bare "second-round interview" or "send the
+  application" will merge unrelated things. Always append the qualifier the
+  document gives — the organisation, project, topic or trip — as
+  "&lt;thing&gt; — &lt;qualifier&gt;". If the document gives a date, put it in the
+  description's first line as an ISO date.
+  (3) YOU CAN ONLY SEE THIS CHUNK. You cannot see the document's title,
+  filename or any other chunk. Never claim a name comes from the title. Where a
+  type's description says to read a header line, extract that entity only when
+  the header line is present in the text in front of you; when it is absent,
+  extract no entity of that type and attach the rest to the Project instead.
+  (4) A RELATION IS ONLY STORED IF BOTH ITS ENDS ARE EXTRACTED FROM THIS SAME
+  CHUNK. If a chunk mentions a goal, project or organisation only in passing but
+  a relation needs it, extract that entity too so the link can be stored.
+  Never extract entities from the examples written inside this ontology itself —
+  any name introduced here with "e.g." is illustrative, not data.
+
+  VERSION 1.0.0. Keep edits ADDITIVE: renaming a type or relation invalidates
+  every node and edge already stored under the old name. Entity types are held
+  under 30 because extraction accuracy degrades past roughly that many. Names
+  shared with the sibling agent-context ontology (Session, Project, Task,
+  Decision, Learning, Problem, Artifact, Person, Document, Topic, and the
+  relations WORKED_ON, MADE_DECISION, CAPTURED_LEARNING, LEFT_OPEN,
+  HIT_PROBLEM, PRODUCED_ARTIFACT, DECISION_ABOUT, LEARNED_ABOUT, AUTHORED_BY,
+  CONTINUES, MOTIVATED_DECISION, PERSON_AT_ORG) keep the same meaning there, so
+  keep them aligned.
+
+entity_types:
+  - name: Goal
+    description: >
+      Something the person is deliberately working toward over months or years:
+      a career move, a level to reach in a skill, a qualification, a project
+      they mean to finish. Extract a Goal ONLY where the document states a
+      commitment the person is pursuing. A passing wish, a maybe, or an idea
+      floated without commitment is a Note, not a Goal. Name it as the intended
+      outcome plus its qualifier (e.g. "reach senior level — data engineering").
+      Target date, status and why it matters live in the description text. A
+      Goal is an intention; a single concrete action is a Task.
+  - name: Project
+    description: >
+      A named undertaking of the person's own: a side application, a research
+      project, a course they are taking, a home build, a piece of writing. Use
+      the project's own name exactly as written. A "Project:" header line in
+      this chunk is the authoritative source when present. Generic phrases like
+      "my project" or "the app" are never a Project. If the person is DOING it,
+      it is a Project; if they are only FOLLOWING it, it is a Topic. Purpose and
+      current state live in the description text.
+  - name: Session
+    description: >
+      One working session on a project — a hand-over summary, a session card or
+      a close-out note covering a bounded stretch of work, usually written with
+      an AI assistant. Extract a Session ONLY when this chunk contains a
+      "Session:" header line, and name it verbatim from that line. If the header
+      is not in this chunk, extract no Session and attach the chunk's decisions,
+      learnings and tasks to the Project instead. Never name a Session after a
+      sentence from inside the document. What was asked, the timeline and the
+      outcome live in the description text.
+  - name: Task
+    description: >
+      One concrete action the person must take, open or done: a to-do line, an
+      application to send, a call to make, something to book. Do not invent a
+      Task where the document names none. Routine errands or list-of-items
+      material (a packing list, a shopping list) stay in the parent Note or
+      Event description rather than becoming individual Tasks. Name it verb-
+      first and lowercase, with its qualifier (e.g. "book the course — streaming
+      certification"). START the description with "status: open", "status: done"
+      or "status: dropped" so open work can be listed; the due date, blockers
+      and outcome follow. A dated obligation is a Task with its date in the
+      description — not an Event.
+  - name: Application
+    description: >
+      A request the person has SENT and is awaiting a decision on: a job
+      application, a visa or permit application, a course admission, a grant.
+      Name it as the thing applied for plus the organisation (e.g. "platform
+      engineer — Northwind"). START the description with "status: submitted",
+      "status: interviewing", "status: offer", "status: rejected" or
+      "status: withdrawn", then the date sent and the outcome. Something not yet
+      sent is a Task; the interview or test itself is an Event.
+  - name: Decision
+    description: >
+      A choice the person made, together with the reason: an option taken, an
+      option rejected, a change of direction, a commitment. Name it as
+      "chose X over Y" or a short phrase of what was decided, with its
+      qualifier. The alternatives and the why live in the description text. A
+      fact that appears only as this decision's rationale stays inside this
+      description — extract it as a separate Learning only if the document
+      presents it as a standalone finding in its own right.
+  - name: Problem
+    description: >
+      An error, failure or blocker the person actually hit: a build that broke,
+      a command that failed, a rejection with a stated reason, a plan that did
+      not work. Name it as a short phrase of the symptom plus its qualifier
+      (e.g. "build runs out of memory — offline sync"). The cause and the fix —
+      including whether it was fixed at all — live in the description text.
+      Built so "have I hit this before" is answerable. Do not extract risks the
+      document merely worries about.
+  - name: Learning
+    description: >
+      Something the person found out and would not want to rediscover: a
+      research finding, a how-it-actually-works fact, a correction of a wrong
+      belief, a comparison result. Extract a Learning ONLY when the document
+      presents the fact as a standalone finding worth keeping; if it appears
+      only as the reason for a decision it stays inside that Decision's
+      description. Name it as a sentence-case statement of the fact, with its
+      qualifier. Where the finding came from goes in the description text as
+      well as in a relation.
+  - name: Note
+    description: >
+      A captured thought, observation or piece of raw material that is neither a
+      decision, a learning nor a task: a recorded idea, a quote worth keeping, a
+      piece of context to remember. A fact found out is a Learning; a choice
+      with a reason is a Decision; an action is a Task; Note is only what is
+      none of those. Extract a Note only when the thought is one the person
+      would want resurfaced later — at most two or three per document, never one
+      per sentence or paragraph. Passing remarks, feelings and connective prose
+      are not Notes.
+  - name: Person
+    description: >
+      A named individual the person deals with: a contact, a colleague, a
+      recruiter, a mentor, an author they are reading, someone travelling with
+      them. Use the name as written. Record ONLY their role, their organisation
+      and how they are connected — nothing else about them, however plainly the
+      source states it.
+  - name: Organization
+    description: >
+      A named company, employer, school, agency, service provider or group. Use
+      the organisation's own name exactly as written. Generic words like "the
+      company" or "my employer" are never an Organization. What the person's
+      relationship to it is lives in the description text.
+  - name: Event
+    description: >
+      Something that happens at a point in time and that the person attends or
+      takes part in: an interview round, a trip, an appointment, a course
+      session, a spoken conversation or a call. A written thread is a Message,
+      never an Event; an obligation to act by a date is a Task, never an Event.
+      Name it as what it is plus its qualifier (e.g. "first interview round —
+      Northwind"). START the description with the ISO date when the document
+      gives one, then who was there and the outcome.
+  - name: Place
+    description: >
+      A named location: a city, a country, a named venue. Use the place name as
+      written. Generic words like "abroad" or "the office" are never a Place.
+      Never record a residential address, the person's own or anyone else's.
+  - name: Message
+    description: >
+      A summary of ONE written thread the person exchanged — email, chat or DM —
+      never the raw messages, and never a spoken conversation or call (those are
+      Events). Extract a Message ONLY when this chunk contains the thread's
+      subject or a "Subject:" header line, and name it from that plus the other
+      party (e.g. "platform role — Northwind"). If neither is in this chunk,
+      extract no Message. Who it was with and what was asked or agreed live in
+      the description text. If the thread produced a commitment, also extract
+      that as a Task and link it.
+  - name: Document
+    description: >
+      A saved external document the person keeps for reference: a paper, a job
+      description, a manual, a guide, a report. Prefer its real title. When the
+      source names it only by kind and owner ("saved their job description"),
+      name it as that kind plus the owner ("job description — Northwind") and
+      record in the description that the source gave no title. Extract only
+      documents the source says were saved or relied on — not every link
+      mentioned in passing.
+  - name: Artifact
+    description: >
+      Something the person's own work produced: a repository, a file or set of
+      files, a written document of their own, a released package. Use the path,
+      repository name or title as written. Extract only the few the document
+      highlights by name — a bulk list of touched files stays in the Session or
+      Project description. A saved external reference is a Document, not an
+      Artifact.
+  - name: Topic
+    description: >
+      A named subject the person researches or tracks across many documents: a
+      technology, a discipline, a market, a destination, a field of study. Use
+      the subject's canonical name. If the person is FOLLOWING it, it is a
+      Topic; if they are DOING it, it is a Project. A named course is a Project;
+      the subject that course teaches is a Topic. Bare generic words are never a
+      Topic.
+
+relation_types:
+  # ── session-centred (names shared with the sibling ontology) ──────────
+  - name: WORKED_ON
+    description: The session was work on this project.
+    source: Session
+    target: Project
+  - name: MADE_DECISION
+    description: This decision was reached in this session.
+    source: Session
+    target: Decision
+  - name: CAPTURED_LEARNING
+    description: This learning was established in this session.
+    source: Session
+    target: Learning
+  - name: HIT_PROBLEM
+    description: The session ran into this problem.
+    source: Session
+    target: Problem
+  - name: PRODUCED_ARTIFACT
+    description: The session created or changed this artifact.
+    source: Session
+    target: Artifact
+  - name: LEFT_OPEN
+    description: >
+      The session ended with this task still open. Combined with the task's own
+      "status:" line, this is how outstanding work is listed.
+    source: Session
+    target: Task
+  - name: TASK_RESOLVED_BY
+    description: >
+      This session completed the task. Use it when the document states the task
+      is now done, so the task is not reported as open forever.
+    source: Session
+    target: Task
+  - name: CONTINUES
+    description: >
+      This session continues an earlier one. Extract only when this chunk
+      contains BOTH a "Session:" header and a "Continues:" header naming the
+      earlier session; otherwise omit it.
+    source: Session
+    target: Session
+
+  # ── what serves a goal ─────────────────────────────────────────────────
+  - name: WORKS_TOWARD
+    description: The project exists to advance this goal.
+    source: Project
+    target: Goal
+  - name: GOAL_PART_OF
+    description: This goal is a step toward a larger goal.
+    source: Goal
+    target: Goal
+  - name: TASK_FOR_GOAL
+    description: This task is a concrete step toward this goal.
+    source: Task
+    target: Goal
+  - name: EVENT_FOR_GOAL
+    description: The event is a step in pursuing this goal.
+    source: Event
+    target: Goal
+  - name: APPLICATION_FOR_GOAL
+    description: The application was sent in pursuit of this goal.
+    source: Application
+    target: Goal
+  - name: DECISION_ABOUT_GOAL
+    description: The decision concerns this goal.
+    source: Decision
+    target: Goal
+
+  # ── project-centred ────────────────────────────────────────────────────
+  - name: TASK_FOR_PROJECT
+    description: This task is a piece of work on this project.
+    source: Task
+    target: Project
+  - name: DECISION_ABOUT
+    description: The decision concerns this project.
+    source: Decision
+    target: Project
+  - name: PROBLEM_IN_PROJECT
+    description: The problem occurred in this project.
+    source: Problem
+    target: Project
+  - name: ARTIFACT_IN_PROJECT
+    description: The artifact belongs to this project.
+    source: Artifact
+    target: Project
+  - name: NOTE_ABOUT_PROJECT
+    description: The note concerns this project.
+    source: Note
+    target: Project
+
+  # ── applications and events ────────────────────────────────────────────
+  - name: APPLICATION_TO
+    description: The application was sent to this organisation.
+    source: Application
+    target: Organization
+  - name: EVENT_STAGE_OF
+    description: >
+      This event is a stage in that application — an interview round, a test, a
+      decision meeting. Chains the rounds together.
+    source: Event
+    target: Application
+  - name: TASK_FOR_EVENT
+    description: This task must be done for that event — a booking, a preparation.
+    source: Task
+    target: Event
+  - name: EVENT_PART_OF
+    description: >
+      This event is one leg or session of a larger one — a stop within a trip, a
+      day within a course.
+    source: Event
+    target: Event
+  - name: EVENT_INVOLVES
+    description: This person took part in the event.
+    source: Event
+    target: Person
+  - name: EVENT_WITH_ORG
+    description: The event was with or hosted by this organisation.
+    source: Event
+    target: Organization
+  - name: EVENT_AT
+    description: The event took place here.
+    source: Event
+    target: Place
+
+  # ── what a thing is about ──────────────────────────────────────────────
+  - name: LEARNED_ABOUT
+    description: The learning concerns this topic.
+    source: Learning
+    target: Topic
+  - name: LEARNED_ABOUT_ORG
+    description: >
+      The learning is about this organisation — how it hires, how it works, what
+      it expects.
+    source: Learning
+    target: Organization
+  - name: MOTIVATED_DECISION
+    description: This learning is what led to this decision.
+    source: Learning
+    target: Decision
+  - name: DECISION_ABOUT_TOPIC
+    description: The decision concerns this topic.
+    source: Decision
+    target: Topic
+  - name: DECISION_ABOUT_ORG
+    description: The decision concerns this organisation.
+    source: Decision
+    target: Organization
+  - name: NOTE_ABOUT_TOPIC
+    description: The note concerns this topic.
+    source: Note
+    target: Topic
+  - name: NOTE_ABOUT_PERSON
+    description: The note is about this person's role or how they are connected.
+    source: Note
+    target: Person
+  - name: TASK_WITH_ORG
+    description: >
+      The organisation is the stated recipient or provider of the action — not
+      merely mentioned in the same chunk.
+    source: Task
+    target: Organization
+
+  # ── where knowledge came from ──────────────────────────────────────────
+  - name: LEARNED_FROM
+    description: This saved document is where the learning came from.
+    source: Learning
+    target: Document
+  - name: LEARNED_FROM_PERSON
+    description: This person is who the learning came from.
+    source: Learning
+    target: Person
+  - name: DOCUMENT_ABOUT
+    description: The saved document is about this topic.
+    source: Document
+    target: Topic
+  - name: DOCUMENT_FROM_ORG
+    description: The saved document was published or issued by this organisation.
+    source: Document
+    target: Organization
+  - name: AUTHORED_BY
+    description: This person wrote the document.
+    source: Document
+    target: Person
+
+  # ── conversations ──────────────────────────────────────────────────────
+  - name: MESSAGE_WITH
+    description: The written thread was with this person.
+    source: Message
+    target: Person
+  - name: MESSAGE_ABOUT
+    description: The thread was about this topic.
+    source: Message
+    target: Topic
+  - name: MESSAGE_ABOUT_ORG
+    description: The thread was about or with this organisation.
+    source: Message
+    target: Organization
+  - name: MESSAGE_PRODUCED
+    description: The thread produced this task — something agreed or promised.
+    source: Message
+    target: Task
+
+  # ── people and organisations ───────────────────────────────────────────
+  - name: PERSON_AT_ORG
+    description: This person works at or represents this organisation.
+    source: Person
+    target: Organization

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 640" width="940" height="640" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="940" height="640" fill="#ffffff"/>
+  <text x="30" y="40" font-size="21" font-weight="700" fill="#0f172a">Ethan stays thin — doors and hands are the parts that grow</text>
+
+  <!-- ── doors row ─────────────────────────────────────────────── -->
+  <text x="30" y="76" font-size="12" font-weight="700" fill="#64748b">DOORS — how you reach Ethan</text>
+
+  <rect x="30"  y="88" width="168" height="52" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="114" y="110" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">Telegram</text>
+  <text x="114" y="128" font-size="11" fill="#166534" text-anchor="middle">live</text>
+
+  <rect x="210" y="88" width="168" height="52" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="294" y="110" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">Console (web)</text>
+  <text x="294" y="128" font-size="11" fill="#166534" text-anchor="middle">live — new</text>
+
+  <rect x="390" y="88" width="168" height="52" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="474" y="110" font-size="14" font-weight="700" fill="#64748b" text-anchor="middle">Voice</text>
+  <text x="474" y="128" font-size="11" fill="#94a3b8" text-anchor="middle">speech → text</text>
+
+  <rect x="570" y="88" width="168" height="52" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="654" y="110" font-size="14" font-weight="700" fill="#64748b" text-anchor="middle">Vision</text>
+  <text x="654" y="128" font-size="11" fill="#94a3b8" text-anchor="middle">image → text</text>
+
+  <rect x="750" y="88" width="160" height="52" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="830" y="110" font-size="14" font-weight="700" fill="#64748b" text-anchor="middle">Slack / API</text>
+  <text x="830" y="128" font-size="11" fill="#94a3b8" text-anchor="middle">event → text</text>
+
+  <!-- ── the one contract ──────────────────────────────────────── -->
+  <path d="M470 140 L470 168" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <rect x="150" y="170" width="640" height="38" rx="19" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="470" y="195" font-size="13" fill="#1e40af" text-anchor="middle">every door does one thing:  <tspan font-weight="700" font-family="ui-monospace, Menlo, monospace">router.handle(text, reply)</tspan></text>
+  <text x="470" y="228" font-size="11" fill="#64748b" text-anchor="middle">that single contract is why voice, vision and Slack are additions, not rebuilds</text>
+
+  <!-- ── Ethan ─────────────────────────────────────────────────── -->
+  <path d="M470 236 L470 258" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <rect x="185" y="260" width="570" height="86" rx="10" fill="#1e293b"/>
+  <text x="470" y="288" font-size="16" font-weight="700" fill="#f8fafc" text-anchor="middle">ETHAN — orchestrator only</text>
+  <text x="470" y="308" font-size="11" fill="#94a3b8" text-anchor="middle">picks the brain · picks the hand · keeps the ledger · enforces policy · gates close-out</text>
+  <rect x="300" y="318" width="340" height="20" rx="10" fill="#334155"/>
+  <text x="470" y="332" font-size="11" fill="#cbd5e1" text-anchor="middle">no domain smarts here — deliberately</text>
+
+  <!-- ── brains ────────────────────────────────────────────────── -->
+  <path d="M330 346 L330 388" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <rect x="30" y="390" width="400" height="150" rx="10" fill="#fefce8" stroke="#ca8a04" stroke-width="2"/>
+  <text x="230" y="414" font-size="14" font-weight="700" fill="#713f12" text-anchor="middle">BRAINS — what is known (KB)</text>
+  <text x="48" y="440" font-size="12" fill="#422006">kb-product</text>
+  <text x="410" y="440" font-size="11" fill="#16a34a" text-anchor="end" font-weight="700">read + write</text>
+  <text x="48" y="464" font-size="12" fill="#422006">client-kb</text>
+  <text x="410" y="464" font-size="11" fill="#b45309" text-anchor="end" font-weight="700">read only</text>
+  <text x="48" y="488" font-size="12" fill="#a16207">work-local</text>
+  <text x="410" y="488" font-size="11" fill="#94a3b8" text-anchor="end">planned</text>
+  <text x="48" y="512" font-size="12" fill="#a16207">personal</text>
+  <text x="410" y="512" font-size="11" fill="#94a3b8" text-anchor="end">planned</text>
+  <text x="230" y="532" font-size="10" fill="#854d0e" text-anchor="middle">documents, decisions, history — never raw code</text>
+
+  <!-- ── hands ─────────────────────────────────────────────────── -->
+  <path d="M610 346 L610 388" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <rect x="460" y="390" width="450" height="106" rx="10" fill="#f0fdfa" stroke="#0d9488" stroke-width="2"/>
+  <text x="685" y="414" font-size="14" font-weight="700" fill="#134e4a" text-anchor="middle">HANDS — where the thinking happens</text>
+  <rect x="480" y="428" width="92" height="30" rx="6" fill="#ccfbf1"/>
+  <text x="526" y="448" font-size="12" font-weight="700" fill="#134e4a" text-anchor="middle">Claude</text>
+  <rect x="582" y="428" width="92" height="30" rx="6" fill="#ccfbf1"/>
+  <text x="628" y="448" font-size="12" font-weight="700" fill="#134e4a" text-anchor="middle">Codex</text>
+  <rect x="684" y="428" width="92" height="30" rx="6" fill="#ccfbf1"/>
+  <text x="730" y="448" font-size="12" font-weight="700" fill="#134e4a" text-anchor="middle">Kimi</text>
+  <rect x="786" y="428" width="104" height="30" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+  <text x="838" y="448" font-size="12" fill="#64748b" text-anchor="middle">+ next one</text>
+  <text x="685" y="480" font-size="10" fill="#0f766e" text-anchor="middle">one contract: run(hand, brief, repo) — adding a hand is one config line</text>
+
+  <!-- ── code graph ────────────────────────────────────────────── -->
+  <path d="M685 496 L685 526" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#b)"/>
+  <text x="700" y="516" font-size="10" fill="#0f766e">hands query it</text>
+  <rect x="460" y="528" width="450" height="62" rx="10" fill="#faf5ff" stroke="#9333ea" stroke-width="2"/>
+  <text x="685" y="550" font-size="13" font-weight="700" fill="#581c87" text-anchor="middle">CODE GRAPH — local, one per repo</text>
+  <text x="685" y="572" font-size="10.5" fill="#7e22ce" text-anchor="middle">tree-sitter → SQLite · built on demand · never leaves the laptop</text>
+
+  <text x="30" y="618" font-size="12" fill="#475569">Ethan does not get smarter by being taught. It gets smarter when a better hand is plugged in.</text>
+
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0 1 L7 4.5 L0 8 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0 1 L7 4.5 L0 8 z" fill="#0d9488"/>
+    </marker>
+  </defs>
+</svg>

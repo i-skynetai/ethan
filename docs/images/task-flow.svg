@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 940" width="940" height="940" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="940" height="940" fill="#ffffff"/>
+  <text x="30" y="42" font-size="20" font-weight="700" fill="#0f172a">One task, end to end — "Fix ENG-1234. Build with Claude, review with Codex."</text>
+
+  <defs>
+    <marker id="f" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#16a34a"/></marker>
+  </defs>
+
+  <!-- lane headers -->
+  <g font-size="14" font-weight="700" text-anchor="middle">
+    <rect x="30"  y="70" width="130" height="40" rx="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="95"  y="95" fill="#0f172a">You (phone)</text>
+    <rect x="205" y="70" width="130" height="40" rx="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="270" y="95" fill="#0f172a">Telegram door</text>
+    <rect x="390" y="70" width="140" height="40" rx="9" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.5"/><text x="460" y="95" fill="#312e81">Router</text>
+    <rect x="585" y="70" width="130" height="40" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="650" y="95" fill="#1e3a8a">kb_kb</text>
+    <rect x="765" y="70" width="145" height="40" rx="9" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/><text x="837" y="95" fill="#14532d">Hands</text>
+  </g>
+
+  <!-- lifelines -->
+  <g stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4">
+    <line x1="95" y1="110" x2="95" y2="860"/><line x1="270" y1="110" x2="270" y2="860"/>
+    <line x1="460" y1="110" x2="460" y2="860"/><line x1="650" y1="110" x2="650" y2="860"/>
+    <line x1="837" y1="110" x2="837" y2="860"/>
+  </g>
+
+  <g font-size="12.5" fill="#1e293b">
+    <!-- 1 -->
+    <line x1="95" y1="150" x2="262" y2="150" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="105" y="142">1 · the ask, from anywhere</text>
+    <!-- 2 -->
+    <line x1="270" y1="195" x2="452" y2="195" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="280" y="187">2 · task arrives</text>
+    <!-- 3 self -->
+    <path d="M460 235 h55 v28 h-55" fill="none" stroke="#4f46e5" stroke-width="2" marker-end="url(#f)"/>
+    <text x="525" y="255" fill="#4338ca">3 · classify: build · KB map → kb_kb · wall check</text>
+    <!-- 4 -->
+    <line x1="460" y1="310" x2="642" y2="310" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="470" y="302">4 · pull context: similar fixes, module card, tests</text>
+    <!-- 5 -->
+    <line x1="650" y1="350" x2="468" y2="350" stroke="#16a34a" stroke-width="2" marker-end="url(#b)"/>
+    <text x="470" y="372" fill="#166534">5 · cited context pack</text>
+    <!-- 6 -->
+    <line x1="460" y1="410" x2="829" y2="410" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="470" y="402">6 · task brief → core → Claude in the repo  (build)</text>
+    <!-- 7 -->
+    <line x1="837" y1="455" x2="468" y2="455" stroke="#16a34a" stroke-width="2" marker-end="url(#b)"/>
+    <text x="470" y="477" fill="#166534">7 · local branch + fix note + push/PR intents</text>
+    <!-- 8 -->
+    <line x1="460" y1="515" x2="829" y2="515" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="470" y="507">8 · review brief → codex exec  (read-only sandbox)</text>
+    <!-- 9 -->
+    <line x1="837" y1="560" x2="468" y2="560" stroke="#16a34a" stroke-width="2" marker-end="url(#b)"/>
+    <text x="470" y="582" fill="#166534">9 · verdict: approved, 1 note</text>
+    <!-- 10 -->
+    <line x1="460" y1="625" x2="103" y2="625" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="112" y="617">10 · "MR ready, review clean — push?"  (same door you used)</text>
+    <!-- 11 -->
+    <line x1="95" y1="670" x2="452" y2="670" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="105" y="662">11 · "push" — approval through this verified door</text>
+    <!-- 12 -->
+    <line x1="460" y1="730" x2="642" y2="730" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="470" y="722">12 · approve harvest → ingest fix note + learning</text>
+    <!-- 13 -->
+    <line x1="460" y1="790" x2="103" y2="790" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
+    <text x="112" y="782">13 · done + links, task closed</text>
+  </g>
+
+  <rect x="30" y="870" width="880" height="52" rx="10" fill="#fffbeb" stroke="#ca8a04" stroke-width="2"/>
+  <text x="48" y="892" font-size="12.5" fill="#713f12">This example uses Telegram; hand console, Ethan console or another verified door may carry the same decision.</text>
+  <text x="48" y="912" font-size="12.5" fill="#713f12">Managed writes need one-time approval or a narrow grant. Reads never block.</text>
+</svg>

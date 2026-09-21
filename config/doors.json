@@ -1,0 +1,5 @@
+{
+  "telegram-private": { "classes": ["personal", "work", "client"] },
+  "console": { "classes": ["personal", "work", "client"] },
+  "backfill": { "classes": ["work", "client"] }
+}

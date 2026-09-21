@@ -1,0 +1,47 @@
+{
+  "hand_timeout_sec": 1800,
+  "poll_timeout_sec": 50,
+  "harvest": true,
+  "hands": {
+    "claude": {
+      "cmd": [
+        "claude",
+        "-p",
+        "--permission-mode",
+        "acceptEdits"
+      ],
+      "note": "Max plan; edits auto-accepted, arbitrary bash still restricted"
+    },
+    "codex": {
+      "cmd": [
+        "codex",
+        "exec",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write"
+      ],
+      "review_cmd": [
+        "codex",
+        "exec",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "read-only"
+      ],
+      "note": "exec is non-interactive: no --ask-for-approval flag exists (verified codex-cli 0.149.0)"
+    },
+    "kimi": {
+      "cmd": [
+        "kimi",
+        "-p"
+      ]
+    }
+  },
+  "hand_silence_sec": 420,
+  "sky": {
+    "_comment": "Ethan starts hands through core's `sky build`. bin: path to core/bin/sky (else $SKY_BIN, else PATH). policy: plugin/policy.yaml (else $SKY_POLICY, else the installed plugin). state_dir: where core writes run records (default state/sky). agent_id: passed as SKY_AGENT_ID.",
+    "bin": null,
+    "policy": null,
+    "state_dir": null,
+    "agent_id": null
+  }
+}
