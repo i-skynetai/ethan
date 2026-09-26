@@ -1,10 +1,10 @@
 # Contributing
 
 ```bash
-python3 -m pytest tests -q
+python3 -m unittest discover -s tests -t .
 ```
 
-17 tests. They must pass.
+Standard library only — the same command CI runs. They must pass.
 
 ## What a change needs
 

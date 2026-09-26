@@ -1,5 +1,10 @@
 # Ethan
 
+[![tests](https://github.com/arupmmi07/ethan/actions/workflows/tests.yml/badge.svg)](https://github.com/arupmmi07/ethan/actions/workflows/tests.yml)
+[![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![licence](https://img.shields.io/badge/licence-Apache%202.0-blue)](LICENSE)
+
+
 *The charioteer — steers, never fights.*
 
 **A personal agent that decides which knowledge base and which coding agent a task
@@ -36,6 +41,14 @@ Ethan takes — not the engineering judgement, the operating.
   not learned anything yet.
 - **Keeps a ledger.** SQLite. Every task, door, route decision and outcome.
 
+## How it fits together
+
+![One service: doors on the way in, a router that decides, knowledge bases it reads,
+and hands that act](docs/images/architecture.svg)
+
+One Python process. Every arrow crosses a process boundary, and the router is the only
+part that knows everything.
+
 ## Three design decisions
 
 **Ethan replaces the operator, not the accountable human.** It picks and launches. It
@@ -71,11 +84,15 @@ checkout runs. See [docs/getting-started.md](docs/getting-started.md).
 | [Architecture](docs/architecture.md) | Doors, router, hands, harvest |
 | [Getting started](docs/getting-started.md) | Keys, knowledge bases, first task |
 | [Routing](docs/routing.md) | How a task chooses a knowledge base |
+| [Contributing](CONTRIBUTING.md) | Running the tests, and what a change needs |
+
 
 ## Status
 
-Working — **17 tests**. ~2,400 lines of Python. Mid-session input is deliberately
-closed until there is a real boundary for it.
+Working — **17 regression checks**, about 2,100 lines of Python. Standard library,
+plus a routing model client. CI runs the suite on Python 3.11, 3.12 and 3.13.
+
+Mid-session input is deliberately closed until there is a real boundary for it.
 
 ## Licence
 

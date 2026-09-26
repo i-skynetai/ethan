@@ -12,7 +12,7 @@
     <rect x="30"  y="70" width="130" height="40" rx="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="95"  y="95" fill="#0f172a">You (phone)</text>
     <rect x="205" y="70" width="130" height="40" rx="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="270" y="95" fill="#0f172a">Telegram door</text>
     <rect x="390" y="70" width="140" height="40" rx="9" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.5"/><text x="460" y="95" fill="#312e81">Router</text>
-    <rect x="585" y="70" width="130" height="40" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="650" y="95" fill="#1e3a8a">kb_kb</text>
+    <rect x="585" y="70" width="130" height="40" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="650" y="95" fill="#1e3a8a">kb_core</text>
     <rect x="765" y="70" width="145" height="40" rx="9" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/><text x="837" y="95" fill="#14532d">Hands</text>
   </g>
 
@@ -32,7 +32,7 @@
     <text x="280" y="187">2 · task arrives</text>
     <!-- 3 self -->
     <path d="M460 235 h55 v28 h-55" fill="none" stroke="#4f46e5" stroke-width="2" marker-end="url(#f)"/>
-    <text x="525" y="255" fill="#4338ca">3 · classify: build · KB map → kb_kb · wall check</text>
+    <text x="525" y="255" fill="#4338ca">3 · classify: build · KB map → kb_core · wall check</text>
     <!-- 4 -->
     <line x1="460" y1="310" x2="642" y2="310" stroke="#334155" stroke-width="2" marker-end="url(#f)"/>
     <text x="470" y="302">4 · pull context: similar fixes, module card, tests</text>

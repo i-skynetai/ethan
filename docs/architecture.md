@@ -31,6 +31,9 @@
             └─────────────┘
 ```
 
+![One task end to end — from the ask, through routing and context, to a build and a
+review by two different agents](images/task-flow.svg)
+
 ## Doors
 
 A door is a way in. Telegram, a local console on `:8787`, and the CLI. Each door
@@ -63,6 +66,9 @@ Spawning directly was built first and rejected on review: the child inherited ev
 secret in the environment, and no role policy applied to it. Going through the harness
 means one place decides what a run may do.
 
+![Ethan stays thin — the doors and the hands are the parts that
+grow](images/shape.svg)
+
 ## Harvest
 
 After the run exits — not during. The result is redacted, then filed into the knowledge
@@ -76,3 +82,12 @@ silent scrub hides the near-miss, and the near-miss is the thing worth knowing a
 
 SQLite. Task, door, route decision, hand, outcome, timing. It is the answer to "what
 did it actually do" — separate from whatever the transcript says.
+
+## Closing a session
+
+![Closing a session: the hand proposes what is worth keeping, and Ethan checks that
+proposal against policy](images/closeout.svg)
+
+Ethan holds no opinion about what matters. The hand that did the work proposes what is
+worth keeping; Ethan's only judgement is whether that knowledge base exists, is
+writable, and matches the privacy class of the door the ask came through.
