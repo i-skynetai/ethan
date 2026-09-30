@@ -60,7 +60,7 @@ accepted.
 | EH-007 | [Doors ship with the privacy wall on](#eh-007) | doors | P0 | M | Needs decision | |
 | EH-008 | [Every ask ends with a close-out line](#eh-008) | doors | P0 | S | Ready | |
 | EH-009 | [The ontology validator imports what it uses](#eh-009) — *good first issue* | tools | P0 | S | Ready | |
-| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | In progress | @arupmmi07, 2026-09-30 |
+| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | Ready | |
 
 ### 0.3.0 — a record you can trust
 
@@ -210,6 +210,11 @@ private server's admin API and container. *Done when:* each file is removed, or 
 its paths and names from arguments or `.env`; a test fails if any tracked file contains
 an absolute home-directory path. Whether older commits must be rewritten is a maintainer
 decision.
+*Progress, 2026-09-30:* the private names, the code, the tool names and the home-folder
+path are gone from every commit — history was rewritten before the first push — and
+the validator's word list now holds only generic words; private words belong in your
+own copy. *Still open:* `tools/extract-model.sh`, and the test that fails on an
+absolute home-directory path.
 
 ### A record you can trust
 
