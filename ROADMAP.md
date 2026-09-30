@@ -60,7 +60,7 @@ accepted.
 | EH-007 | [Doors ship with the privacy wall on](#eh-007) | doors | P0 | M | Needs decision | |
 | EH-008 | [Every ask ends with a close-out line](#eh-008) | doors | P0 | S | Ready | |
 | EH-009 | [The ontology validator imports what it uses](#eh-009) — *good first issue* | tools | P0 | S | Ready | |
-| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | Ready | |
+| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | In progress | @arupmmi07, 2026-09-30 |
 
 ### 0.3.0 — a record you can trust
 
