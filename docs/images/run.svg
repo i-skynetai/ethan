@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" font-family="-apple-system, Helvetica, Arial, sans-serif">
+<rect width="960" height="300" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker></defs>
+<text x="30" y="34" font-size="18" font-weight="700" fill="#0f172a">One ask, start to finish</text>
+<g font-size="14" text-anchor="middle">
+  <rect x="30" y="70" width="140" height="70" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="100" y="100" font-weight="700" fill="#0f172a">1 · Ask</text><text x="100" y="122" fill="#334155">through a door</text>
+
+  <rect x="210" y="70" width="160" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="290" y="100" font-weight="700" fill="#0f172a">2 · Route</text><text x="290" y="122" fill="#334155">hint, else small model</text>
+
+  <rect x="410" y="70" width="150" height="70" rx="10" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="485" y="100" font-weight="700" fill="#0f172a">3 · Context</text><text x="485" y="122" fill="#334155">cited hits from the KB</text>
+
+  <rect x="600" y="70" width="150" height="70" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+  <text x="675" y="100" font-weight="700" fill="#0f172a">4 · Launch</text><text x="675" y="122" fill="#334155">sky build, one secret</text>
+
+  <rect x="790" y="70" width="140" height="70" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+  <text x="860" y="100" font-weight="700" fill="#0f172a">5 · Close-out</text><text x="860" y="122" fill="#334155">keep, or say why not</text>
+</g>
+<g stroke="#475569" stroke-width="2" marker-end="url(#a)">
+  <line x1="170" y1="105" x2="206" y2="105"/><line x1="370" y1="105" x2="406" y2="105"/>
+  <line x1="560" y1="105" x2="596" y2="105"/><line x1="750" y1="105" x2="786" y2="105"/>
+</g>
+<g font-size="13" fill="#475569">
+  <text x="210" y="170">No KB matches → none is used,</text><text x="210" y="188">and the reply says so.</text>
+  <text x="600" y="170">The harness applies the role</text><text x="600" y="188">and the policy.</text>
+  <text x="790" y="170">Door class and secret scan</text><text x="790" y="188">checked before any write.</text>
+</g>
+<rect x="30" y="226" width="900" height="44" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+<text x="480" y="254" font-size="13" text-anchor="middle" fill="#334155">The SQLite ledger keeps each build or review task, its runs and logs, and each close-out write or refusal.</text>
+</svg>

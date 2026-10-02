@@ -29,8 +29,10 @@ def _chat_id(raw):
 
 
 def _ask(text, chat=CHAT, cwd=None):
-    """Run one ask in the background; replies land in the pull queue."""
-    store.remember(chat, "user", text)
+    """Run one ask in the background; replies land in the pull queue.
+
+    The ask is stored by router.handle, not here: storing it twice used to put it
+    in front of the model twice."""
     def reply(msg):
         store.add_reply(chat, msg)
     try:
@@ -67,6 +69,10 @@ def _tail(path, offset):
         chunk = f.read(200_000)
     return {"offset": offset + len(chunk), "text": chunk.decode("utf-8", "replace"),
             "eof": False}
+
+
+#: The largest POST body read. An ask or an ingest request is a few hundred bytes.
+MAX_BODY = 64 * 1024
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -113,8 +119,36 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self._send(500, json.dumps({"error": str(e)}))
 
+    def _refuse_post(self):
+        """Why this POST must not run, or None.
+
+        The console has no sign-in, so it must not do what any web page asks. A
+        cross-site `text/plain` POST is a "simple request" that browsers send without
+        asking first — but it always carries an `Origin`, and it cannot claim to be
+        JSON. So: a foreign `Origin` is refused, and so is any body that is not JSON.
+        `bin/ethan` and curl send no `Origin`, and the page's own sends its own.
+        """
+        origin = self.headers.get("Origin")
+        port = self.server.server_address[1]
+        if origin and origin not in (f"http://127.0.0.1:{port}", f"http://localhost:{port}"):
+            return 403, f"origin {origin} may not use this console"
+        ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if ctype != "application/json":
+            return 415, "send Content-Type: application/json"
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return 400, "bad Content-Length"
+        if n < 0 or n > MAX_BODY:
+            return 413, f"body over {MAX_BODY} bytes"
+        return None
+
     def do_POST(self):
         upath = urlparse(self.path).path
+        refused = self._refuse_post()
+        if refused:
+            self.close_connection = True         # the body was not read; do not reuse
+            return self._send(refused[0], json.dumps({"error": refused[1]}))
         if upath == "/api/ingest":
             n = int(self.headers.get("Content-Length") or 0)
             try:
@@ -150,12 +184,18 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, json.dumps({"ok": True, "chat": chat, "cwd": cwd}))
 
 
-def run(port=None):
-    port = port or int(os.environ.get("ETHAN_CONSOLE_PORT", "8787"))
+def open_server(port=None):
+    """Bind the port now, so a port already in use fails here, loudly, and not
+    inside a thread nobody is watching."""
+    port = port if port is not None else int(os.environ.get("ETHAN_CONSOLE_PORT", "8787"))
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True
-    log(f"console door open: http://127.0.0.1:{port}")
-    srv.serve_forever()
+    log(f"console door open: http://127.0.0.1:{srv.server_address[1]}")
+    return srv
+
+
+def run(port=None):
+    open_server(port).serve_forever()
 
 
 PAGE = r"""<!doctype html><html><head><meta charset="utf-8">

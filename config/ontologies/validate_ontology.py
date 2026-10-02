@@ -1,11 +1,20 @@
-"""Pre-flight validation using KB's OWN Ontology schema, so a bad upload is
-import os
+"""Pre-flight validation using the KB server's OWN Ontology schema, so a bad upload is
 caught locally instead of as a 422 from the server.
 
-Run with the kb-v2 venv python:
-  .../kb-v2/.venv/bin/python validate_ontology.py <new.yaml> [<source.yaml>]
+  KB_REPO=<path to your KB server checkout> python3 validate_ontology.py <new.yaml> [<source.yaml>]
+
+Run it with a Python that has the KB server's dependencies installed (PyYAML, pydantic).
 """
-import sys, yaml, importlib.util, pathlib
+import importlib.util, os, pathlib, sys
+
+if len(sys.argv) < 2:
+    print(__doc__.strip())
+    sys.exit(2)
+try:
+    import yaml
+except ImportError:
+    print("validate_ontology: PyYAML is not installed — pip install pyyaml")
+    sys.exit(2)
 
 KB = pathlib.Path(os.environ.get("KB_REPO", "."))
 spec = importlib.util.spec_from_file_location(

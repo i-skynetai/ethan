@@ -1,0 +1,10 @@
+{
+  "_comment": "The demo's one knowledge base: a folder of Markdown notes, no server and no token.",
+  "shop_kb": {
+    "purpose": "the demo shop: invoices, refunds and the rules for both",
+    "folder": "kb",
+    "privacy": "work",
+    "write": true,
+    "hints": ["SHOP-"]
+  }
+}

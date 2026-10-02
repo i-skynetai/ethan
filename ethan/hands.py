@@ -25,11 +25,9 @@ new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`
 `sky_dir` and `usage`.
 """
 import itertools, json, os, shutil, subprocess, threading, time
-from .util import cfg, log, ROOT
+from .util import cfg, log, state_dir
 from . import store
 from .kb import kb_map_path          # imported by name: `kb` is a parameter here
-
-RUNS_DIR = os.path.join(ROOT, "state", "runs")
 
 #: What `sky build` may inherit from Ethan. Listed, not filtered: a filter has
 #: to be updated every time a new secret appears in Ethan's environment, and
@@ -50,9 +48,10 @@ _RUN_SEQ = itertools.count(1)
 
 
 def _log_path(hand):
-    os.makedirs(RUNS_DIR, exist_ok=True)
+    runs = os.path.join(state_dir(), "runs")
+    os.makedirs(runs, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    return os.path.join(RUNS_DIR, f"{stamp}-{hand}-{os.getpid()}-{next(_RUN_SEQ):04d}.log")
+    return os.path.join(runs, f"{stamp}-{hand}-{os.getpid()}-{next(_RUN_SEQ):04d}.log")
 
 
 def role_for(kind=None, review=False):
@@ -95,7 +94,7 @@ def build_env(conf, kb_entry=None):
     env = {k: os.environ[k] for k in ENV_ALLOWLIST if k in os.environ}
     sky = conf.get("sky") or {}
     env["SKY_STATE_DIR"] = os.path.expanduser(sky.get("state_dir")
-                                              or os.path.join(ROOT, "state", "sky"))
+                                              or os.path.join(state_dir(), "sky"))
     if sky.get("policy"):
         env["SKY_POLICY"] = os.path.expanduser(sky["policy"])
     elif os.environ.get("SKY_POLICY"):
@@ -227,6 +226,8 @@ def run(hand, brief_text, repo=None, review=False, task_id=None, kb=None, kind=N
             break
 
     reader.join(timeout=5)
+    if p.stdout:
+        p.stdout.close()
     text = "".join(tail)
     summary = parse_result(text) or {}
     sky_run_id, sky_dir = summary.get("run_id"), summary.get("directory")

@@ -217,7 +217,11 @@ def ontology_for(doc_type: str, privacy: str | None, default: str) -> str:
 
 def ingest_document(path, doc_type, door, chat_id, cwd=None):
     """Ingest one file, resolving everything from the kb map.
-    Returns (status, info) where info is a dict on success, a message otherwise."""
+    Returns (status, info) where info is a dict on success, a message otherwise.
+
+    The file's own location picks the KB — never the directory the command was run
+    from. `cwd` is accepted for old callers and ignored: a private note outside every
+    KB, ingested from inside a work repository, used to be filed into the work KB."""
     import os
     from . import sessions
 
@@ -235,11 +239,11 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
         return "refused", f"file is {len(text)} chars — too large for a knowledge note"
 
     bmap = kb.kb_map()
-    kb_name = sessions.route(cwd or os.path.dirname(path), bmap)
+    kb_name = sessions.route(os.path.dirname(path), bmap)
     if kb_name is None:
         known = ", ".join(bmap)
-        return "refused", (f"no kb owns this directory — add it to "
-                           f"config/kb-map.json (kbs: {known})")
+        return "refused", (f"no kb owns the folder this file is in — add it to a KB's "
+                           f"repos in config/kb-map.json (kbs: {known})")
     b = bmap[kb_name]
     if not b.get("write"):
         return "refused", f"kb '{kb_name}' is read-only by policy"
@@ -255,8 +259,8 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
         return "refused", (f"document contains what looks like a secret "
                            f"({', '.join(leaks)}) — refusing to store it")
 
-    chosen = ontology_for(doc_type, b.get("privacy"), b["ontology"])
-    ontology = None if chosen == b["ontology"] else chosen
+    chosen = ontology_for(doc_type, b.get("privacy"), b.get("ontology", ""))
+    ontology = None if chosen == b.get("ontology", "") else chosen
     filename = os.path.basename(path)
     if not filename.endswith((".md", ".txt")):
         filename += ".md"
@@ -268,8 +272,8 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
     except Exception as e:
         return "failed", f"write to '{kb_name}' failed: {e}"
 
-    info = {"kb": kb_name, "tenant": b["tenant_code"],
-            "ontology": ontology or b["ontology"], "filename": filename,
+    info = {"kb": kb_name, "tenant": b.get("tenant_code", ""),
+            "ontology": ontology or b.get("ontology", ""), "filename": filename,
             "job_id": job.get("job_id")}
     store.add_harvest(chat_id, "cli", kb_name, filename, f"direct ingest ({doc_type})", "written")
     log(f"ingest: {filename} -> {kb_name} ({info['ontology']}) job {info['job_id']}")

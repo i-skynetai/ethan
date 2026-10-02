@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 451" width="820" height="451">
+<rect width="820" height="451" rx="10" fill="#0f172a"/>
+<circle cx="22" cy="20" r="6" fill="#ef4444"/><circle cx="42" cy="20" r="6" fill="#f59e0b"/><circle cx="62" cy="20" r="6" fill="#22c55e"/>
+<text x="410" y="25" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">terminal — real output of ./run.sh --demo</text>
+<g font-family="Menlo, Monaco, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" xml:space="preserve">
+<text x="22" y="52" fill="#86efac">$ ./run.sh --demo</text>
+<text x="22" y="71" fill="#e2e8f0">&lt;demo&gt; is $TMPDIR/ethan-demo-d0a9mhsf — a fresh copy of demo/</text>
+<text x="22" y="90" fill="#e2e8f0"></text>
+<text x="22" y="109" fill="#86efac">you    › review SHOP-7: is the refund check in refunds.py right?</text>
+<text x="22" y="128" fill="#fde68a">router › review · kb shop_kb · decided by hint</text>
+<text x="22" y="147" fill="#e2e8f0">ethan  › On it — review · kb: shop_kb · in &lt;demo&gt;/shop.</text>
+<text x="22" y="166" fill="#e2e8f0">ethan  › Task #1: delegating to codex in &lt;demo&gt;/shop — I&#x27;ll report back.</text>
+<text x="22" y="185" fill="#fde68a">launch › hand:codex as reviewer via sky build</text>
+<text x="22" y="204" fill="#e2e8f0">ethan  › Task #1 done (codex):</text>
+<text x="22" y="223" fill="#e2e8f0">Review of SHOP-7 (demo hand — fixed text, no agent ran):</text>
+<text x="22" y="242" fill="#e2e8f0">- refunds.py: `(today - invoice_date).days &lt; 30` refuses a refund on day 30.</text>
+<text x="22" y="261" fill="#e2e8f0">- The knowledge base note refund-window.md says day 30 is still allowed.</text>
+<text x="22" y="280" fill="#e2e8f0">- Suggested fix: use `&lt;= 30`, and add a test for day 30 and day 31.</text>
+<text x="22" y="299" fill="#fde68a">launch › hand:codex as reviewer via sky build — the close-out: what is worth keeping?</text>
+<text x="22" y="318" fill="#e2e8f0">ethan  › Kept: kept in shop_kb: refund-window-off-by-one.md — a rule and the code disagree, and</text>
+<text x="22" y="337" fill="#e2e8f0">         the next change to refunds should know</text>
+<text x="22" y="356" fill="#e2e8f0">ethan  › Session can close — nothing pending.</text>
+<text x="22" y="375" fill="#e2e8f0"></text>
+<text x="22" y="394" fill="#93c5fd">ledger › task #1 review · kb shop_kb · hand codex · done</text>
+<text x="22" y="413" fill="#93c5fd">kb     › invoice-numbers.md, refund-window-off-by-one.md, refund-window.md</text>
+<text x="22" y="432" fill="#93c5fd">model  › none called: no model key is visible to the demo, and the hint decided</text>
+</g>
+</svg>

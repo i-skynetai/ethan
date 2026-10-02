@@ -47,20 +47,20 @@ accepted.
 
 ## Features
 
-### 0.2.1 — correctness
+### 0.1.0 — correctness
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-001 | [Hints decide without a model call](#eh-001) | router | P0 | M | Ready | |
-| EH-002 | [No silent fallback to the first KB](#eh-002) | router | P0 | S | Ready | |
-| EH-003 | [The router model sees only the purposes and the ask](#eh-003) | router | P0 | S | Ready | |
-| EH-004 | [Chain steps run with the right role](#eh-004) | router | P0 | S | Ready | |
-| EH-005 | [The console refuses requests from other web pages](#eh-005) | doors | P0 | S | Ready | |
-| EH-006 | [A file is ingested by where it lives](#eh-006) | harvest | P0 | S | Ready | |
+| EH-001 | [Hints decide without a model call](#eh-001) | router | P0 | M | Done — 0.1.0 | @arupmmi07 |
+| EH-002 | [No silent fallback to the first KB](#eh-002) | router | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-003 | [The router model sees only the purposes and the ask](#eh-003) | router | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-004 | [Chain steps run with the right role](#eh-004) | router | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-005 | [The console refuses requests from other web pages](#eh-005) | doors | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-006 | [A file is ingested by where it lives](#eh-006) | harvest | P0 | S | Done — 0.1.0 | @arupmmi07 |
 | EH-007 | [Doors ship with the privacy wall on](#eh-007) | doors | P0 | M | Needs decision | |
-| EH-008 | [Every ask ends with a close-out line](#eh-008) | doors | P0 | S | Ready | |
-| EH-009 | [The ontology validator imports what it uses](#eh-009) — *good first issue* | tools | P0 | S | Ready | |
-| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | Ready | |
+| EH-008 | [Every ask ends with a close-out line](#eh-008) | doors | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-009 | [The ontology validator imports what it uses](#eh-009) — *good first issue* | tools | P0 | S | Done — 0.1.0 | @arupmmi07 |
+| EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | Done — 0.1.0 | @arupmmi07 |
 
 ### 0.3.0 — a record you can trust
 
@@ -74,6 +74,7 @@ accepted.
 | EH-025 | [Tests for routing and the harvest policy](#eh-025) | trust | P1 | M | Ready | |
 | EH-026 | [Config holds only what the code reads](#eh-026) — *good first issue* | config | P2 | S | Ready | |
 | EH-027 | [Docs and diagrams match the code](#eh-027) | docs | P1 | S | Ready | |
+| EH-028 | [Answer "updates" asks](#eh-028) | router | P3 | M | Proposed | |
 
 ### 0.4.0 — a brain you configure
 
@@ -210,6 +211,8 @@ private server's admin API and container. *Done when:* each file is removed, or 
 its paths and names from arguments or `.env`; a test fails if any tracked file contains
 an absolute home-directory path. Whether older commits must be rewritten is a maintainer
 decision.
+*Done, 0.1.0:* `tools/extract-model.sh` is removed, and
+`tests/test_routing.py` fails on any absolute home-folder path in a tracked file.
 *Progress, 2026-09-30:* the private names, the code, the tool names and the home-folder
 path are gone from every commit — history was rewritten before the first push — and
 the validator's word list now holds only generic words; private words belong in your
@@ -217,6 +220,12 @@ own copy. *Still open:* `tools/extract-model.sh`, and the test that fails on an
 absolute home-directory path.
 
 ### A record you can trust
+
+<a id="eh-028"></a>**EH-028 — Answer "updates" asks.** The router can class an ask as
+`updates` (recent mail or notifications), and Ethan replies that it cannot answer it
+yet. *Decision needed:* which sources, and through which credential. *Done when:* an
+`updates` ask lists recent items from one configured source, with no model call beyond
+routing, checked with a stub source.
 
 <a id="eh-020"></a>**EH-020 — The ledger records door, route and reason for every
 ask.** The README says the ledger keeps every task, door, route decision and outcome.
@@ -241,7 +250,7 @@ installed it still prints the command; a test covers both. *Starts in:* `bin/eth
 `router.handle`, `hands.build_command`.
 
 <a id="eh-023"></a>**EH-023 — Answer "status" asks from the ledger.** An ask the router
-classes as `status` gets a fixed "land in v0.2" reply, though the ledger already has what
+classes as `status` gets a fixed reply pointing at this row, though the ledger already has what
 it needs (`store.pending`, `store.recent_tasks`). *Done when:* "what is running?" lists
 the running tasks and the last five finished ones from the ledger, with no model call
 beyond routing, checked with a stub model. `updates` (mail and notifications) stays out
@@ -298,6 +307,9 @@ KB it can reach, so context and harvest cannot be tried without setting one up. 
 when:* a `local` adapter keeps notes in SQLite full-text search under `state/`; the
 example map uses it; on a clean checkout, with no network, a question gets cited hits and
 a harvest files a note. *Depends on:* EH-031.
+*Progress, 0.1.0:* a KB with `"folder"` is a directory of Markdown notes, searched by
+word overlap and written as files, with no server; the demo uses one. Still open: full-text
+search under `state/`, and the example map using it.
 
 <a id="eh-033"></a>**EH-033 — Search more than one KB for one ask.** Each ask gets
 exactly one KB. *Decision needed:* which KBs may be searched together, given their
@@ -366,6 +378,9 @@ macOS and Windows runners, or the README names the supported systems.
 recorded, with the exact commands. *Done when:* the recording reproduces on a clean
 checkout with no keys, through `--dry-run` and the local KB. *Depends on:* EH-022,
 EH-032.
+*Progress, 0.1.0:* `./run.sh --demo` runs one ask end to end with no key, and the README
+shows a picture of its real output, made by `tools/render-terminal.py`. Still open: the
+`--dry-run` path, and a recording of the CLI rather than a still picture.
 
 <a id="eh-053"></a>**EH-053 — A webhook door.** A door is one call:
 `router.handle(chat_id, text, reply, door=…)`. A signed HTTP webhook door, with its own
@@ -379,6 +394,7 @@ before `router.handle`. One door per claim.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-900 | Bring release documentation up to the shared standard | release | P1 | M | Ready | Unassigned |
+| EH-900 | Bring release documentation up to the shared standard | release | P1 | M | Done — 0.1.0 | @arupmmi07 |
 
 **Verified:** Add CHANGELOG.md, a keyless worked demo, numbered steps and PNG embeds. Resolve all six checker failures; reconcile existing P0 rows before tagging.
+*Done, 0.1.0:* `check-docs.py` reports 0 FAIL and 0 WARN; EH-007 is the one P0 still open.

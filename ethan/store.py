@@ -1,6 +1,6 @@
 """SQLite task store + per-chat conversation memory."""
-import os, shutil, sqlite3, threading, time
-from .util import ROOT, log
+import atexit, os, shutil, sqlite3, threading, time
+from .util import state_dir, log
 
 _LOCK = threading.Lock()
 _DB = None
@@ -35,9 +35,10 @@ def _migrate_brain_to_kb(d, path):
 def db():
     global _DB
     if _DB is None:
-        os.makedirs(os.path.join(ROOT, "state"), exist_ok=True)
-        path = os.path.join(ROOT, "state", "ethan.db")
+        os.makedirs(state_dir(), exist_ok=True)
+        path = os.path.join(state_dir(), "ethan.db")
         _DB = sqlite3.connect(path, check_same_thread=False)
+        atexit.register(_DB.close)
         _migrate_brain_to_kb(_DB, path)
         _DB.execute("""CREATE TABLE IF NOT EXISTS tasks(
             id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, kind TEXT, kb TEXT,

@@ -1,5 +1,14 @@
 # Getting started
 
+## 0. Try the demo first
+
+```bash
+./run.sh --demo
+```
+
+No key, no server, no harness. It runs one ask through routing, launch and close-out
+against a sample shop and a folder KB, using `demo/fake-sky` in place of the harness.
+
 ## 1. Keys
 
 ```bash
@@ -29,6 +38,9 @@ Each entry needs a `purpose` — one specific sentence. This is the routing sign
 Without `kb-map.json` Ethan falls back to the example and logs that it did, so a clean
 checkout runs. It will not route usefully until you fill it in.
 
+A KB can also be a folder of Markdown notes on this machine — `"folder": "~/notes"`
+in place of `mcp_url`, `tenant_code` and `pat_env`. See `demo/kb-map.json`.
+
 ## 3. Run
 
 ```bash
@@ -36,14 +48,16 @@ checkout runs. It will not route usefully until you fill it in.
 ```
 
 The console door comes up on `http://localhost:8787`. Telegram attaches if a bot token
-is present; without one, the console still runs.
+is present; without one, the console still runs. If the port is taken and Telegram is
+off, Ethan says so and stops; set `ETHAN_CONSOLE_PORT` to a free port.
 
 ## 4. Give it a task
 
-```
-work on PROJ-412
+```bash
+bin/ethan "review PROJ-412"
 ```
 
+A hint plus a first word that names the work decides the route with no model call.
 Ethan routes it to a knowledge base, calls `sky build` with a role, and reports back
 when the run ends. It does not stream the run — mid-session input is deliberately
 closed until there is a real boundary for it.
@@ -53,4 +67,6 @@ closed until there is a real boundary for it.
 - Push, merge, or comment on a ticket. Outward actions belong to the harness's broker
   and to you.
 - Act without a door. There is no scheduler and no unattended mode.
-- File a personal-door result into a work knowledge base.
+- File a result into a KB whose privacy class the door does not list in
+  `config/doors.json`. The shipped file lists every class for every door, so this wall
+  is off until you narrow it — making it on by default is roadmap row EH-007.

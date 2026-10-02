@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""A stand-in for the harness's `sky build`, used only by `./run.sh --demo`.
+
+It starts no coding agent. It reads the brief Ethan sends, prints a fixed answer,
+and ends with the one JSON line the real `sky build --json` prints — the contract
+Ethan reads. Everything on Ethan's side of that line is the real code.
+"""
+import json, sys
+
+args = sys.argv[1:]
+brief = args[args.index("--task") + 1] if "--task" in args else ""
+role = args[args.index("--role") + 1] if "--role" in args else "?"
+print(f"fake sky: role={role}, no agent started")
+
+if "worth keeping" in brief:                 # Ethan's close-out question
+    text = json.dumps({
+        "keep": True, "kb": "shop_kb", "title": "refund-window-off-by-one",
+        "body": ("# Refund window: off by one in refunds.py\n\n"
+                 "`refund_allowed` in `refunds.py` uses `< 30`, so a refund on day 30 is "
+                 "refused. The rule in `refund-window.md` says day 30 is inside the "
+                 "window, so the check should be `<= 30`. Found in review SHOP-7."),
+        "why": "a rule and the code disagree, and the next change to refunds should know"})
+else:
+    text = ("Review of SHOP-7 (demo hand — fixed text, no agent ran):\n"
+            "- refunds.py: `(today - invoice_date).days < 30` refuses a refund on day 30.\n"
+            "- The knowledge base note refund-window.md says day 30 is still allowed.\n"
+            "- Suggested fix: use `<= 30`, and add a test for day 30 and day 31.")
+
+print(json.dumps({"sky": "build", "ok": True, "outcome": "finished",
+                  "run_id": "demo-run", "result_text": text}))

@@ -10,17 +10,24 @@ Each knowledge base declares hints:
 "hints": ["PROJ-", "billing", "invoice"]
 ```
 
-A task naming `PROJ-412` matches, and no model is called. Most tasks resolve here.
-It is free, deterministic, and explainable.
+A task naming `PROJ-412` (or `proj-412` — case does not matter) matches. When one KB
+matches and the ask starts with a word that names the work — `review`, `audit`, `fix`,
+`implement`, `build`, `add`, `refactor`, `write`, `update`, `change` — no model is
+called. It is free, deterministic, and explainable. An ask that names two hands or says
+"then" sounds like a chain, so it goes to the model.
 
 ## The small model second
 
-When hints are ambiguous — two KBs match, or none do — a small model decides. It sees:
+When hints cannot decide — two KBs match, none do, or the kind of work is unclear — a
+small model decides. It sees:
 
-- each knowledge base's `purpose` string
+- each knowledge base's `purpose` string — only the matching ones, when two matched
 - the ask
+- whether an earlier result exists in this conversation, as yes or no
 
-Nothing else. Not the repository, not the ledger, not your files.
+Nothing else. Not the conversation, not earlier output, not the repository, not your
+files. When one KB matched but the kind was unclear, the model picks the kind and the
+hinted KB stands.
 
 **It uses its own credential**, separate from the tokens the hand will use. The router
 is the component most exposed to arbitrary text, so it is the one that should hold the
@@ -38,7 +45,8 @@ This is the whole routing signal. Be specific.
 
 ## When nothing matches
 
-The task gets **no** knowledge base and a message saying so.
+The task gets **no** knowledge base and a message saying so. It still runs, with no KB
+context, and nothing is filed anywhere at close-out.
 
 It does not fall back to a default. A repository under a client knowledge base never
 falls back to a work one — answering from the wrong knowledge base is worse than

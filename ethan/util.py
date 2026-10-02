@@ -5,7 +5,21 @@ from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def state_dir():
+    """Where the ledger and run logs live. `ETHAN_STATE_DIR` moves it — the demo
+    points it at a temporary folder so it never touches a real ledger."""
+    return os.environ.get("ETHAN_STATE_DIR") or os.path.join(ROOT, "state")
+
+
+#: When a list, log lines are collected here instead of printed. The demo uses it
+#: to show the route and the launch in its own words.
+sink = None
+
+
 def log(msg):
+    if sink is not None:
+        sink.append(msg)
+        return
     print(f"[{datetime.now(timezone.utc).strftime('%H:%M:%SZ')}] {msg}", flush=True)
 
 

@@ -32,7 +32,7 @@
 ```
 
 ![One task end to end — from the ask, through routing and context, to a build and a
-review by two different agents](images/task-flow.svg)
+review by two different agents](images/task-flow.png)
 
 ## Doors
 
@@ -43,16 +43,21 @@ carries a privacy class — a personal door cannot file into a work knowledge ba
 
 Two stages, cheapest first:
 
-1. **Hints.** Each knowledge base lists prefixes and keywords. A task naming `PROJ-412`
-   goes to whichever KB claims that prefix. No model call.
-2. **A small model.** Only when hints are ambiguous. It sees each KB's stated `purpose`
-   and the ask — nothing else. It uses its own low-privilege credential, which is why
+1. **Hints.** Each knowledge base lists prefixes and keywords, matched whatever the
+   case. When exactly one KB's hint matches and the ask's first word names the work
+   (`review PROJ-412`, `fix PROJ-9`), that decides it. No model call.
+2. **A small model.** Otherwise: two KBs matched, none did, or the kind of work is not
+   clear. It sees each KB's stated `purpose` — only the matching KBs, when two matched —
+   the ask, and whether an earlier result exists. Nothing else: no conversation, no
+   earlier output. It uses its own low-privilege credential, which is why
    it never sees the tokens the hand will use.
 
 ## Knowledge base map
 
 `config/kb-map.json`. One entry per KB: `purpose` (the routing signal), `mcp_url`,
-`tenant_code`, `privacy`, `pat_env`, `hints`, `repos`.
+`tenant_code`, `privacy`, `pat_env`, `hints`, `repos`. A KB with `folder` instead is a
+directory of Markdown notes on this machine, searched and written with no server; the
+demo's KB is one.
 
 Working directory comes from the caller, not from the KB's repo list. A task started
 in a directory works on that directory.
@@ -67,7 +72,7 @@ secret in the environment, and no role policy applied to it. Going through the h
 means one place decides what a run may do.
 
 ![Ethan stays thin — the doors and the hands are the parts that
-grow](images/shape.svg)
+grow](images/shape.png)
 
 ## Harvest
 
@@ -86,7 +91,7 @@ did it actually do" — separate from whatever the transcript says.
 ## Closing a session
 
 ![Closing a session: the hand proposes what is worth keeping, and Ethan checks that
-proposal against policy](images/closeout.svg)
+proposal against policy](images/closeout.png)
 
 Ethan holds no opinion about what matters. The hand that did the work proposes what is
 worth keeping; Ethan's only judgement is whether that knowledge base exists, is

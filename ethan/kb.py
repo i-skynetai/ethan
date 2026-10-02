@@ -1,5 +1,5 @@
 """Thin client for KB kbs (MCP JSON-RPC over HTTP). Never mounts the full tool surface."""
-import json, os
+import json, os, re
 from .util import http_json, cfg, log
 
 CONFIG_DIR = os.path.join(
@@ -21,6 +21,8 @@ def kb_map_path():
     path to `kb-map.json`, a file a clean checkout does not have. Everything looked
     fine until something was actually built.
     """
+    if os.environ.get("ETHAN_KB_MAP"):          # the demo brings its own map
+        return os.path.abspath(os.path.expanduser(os.environ["ETHAN_KB_MAP"]))
     real = os.path.join(CONFIG_DIR, "kb-map.json")
     return real if os.path.isfile(real) else os.path.join(CONFIG_DIR, "kb-map.example.json")
 
@@ -28,18 +30,41 @@ def kb_map_path():
 def kb_map():
     global _MAP
     if _MAP is None:
-        try:
-            _MAP = cfg("kb-map.json")
-        except FileNotFoundError:
+        path = kb_map_path()
+        with open(path) as fh:
+            _MAP = json.load(fh)
+        if path.endswith("kb-map.example.json"):
             # A clean checkout has no kb-map.json — it is gitignored because it
-            # names real tenants and hosts. Fall back to the shipped example so
-            # the repo runs out of the box, and say so rather than failing with
-            # a bare FileNotFoundError.
-            _MAP = cfg("kb-map.example.json")
+            # names real tenants and hosts. The shipped example keeps the repo
+            # running, and this says so rather than failing on a missing file.
             log("No config/kb-map.json — using config/kb-map.example.json. "
                 "Copy it and fill in your own knowledge bases.")
     # Keys beginning with "_" are comments, not knowledge bases.
     return {k: v for k, v in _MAP.items() if not k.startswith("_")}
+
+
+def _folder(b):
+    """A KB with `folder` is a directory of Markdown files on this machine: no
+    server, no token. A relative path is relative to the map file."""
+    folder = os.path.expanduser(b["folder"])
+    return folder if os.path.isabs(folder) else os.path.join(os.path.dirname(kb_map_path()), folder)
+
+
+def _folder_search(b, query, k):
+    """Rank the folder's notes by how many of the query's words they contain."""
+    words = {w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2}
+    scored = []
+    folder = _folder(b)
+    for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+        if not name.endswith(".md"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            text = fh.read()
+        score = len(words & set(re.findall(r"[a-z0-9]+", text.lower())))
+        if score:
+            scored.append((-score, name, text))
+    return [{"source": name, "doc_id": name, "text": text[:800]}
+            for _, name, text in sorted(scored)[:k]]
 
 
 def _rpc(kb, tool, args):
@@ -69,6 +94,9 @@ def _rpc(kb, tool, args):
 
 def search(kb, query, k=5):
     """Fast cited hits: filename + snippet per hit."""
+    b = kb_map()[kb]
+    if b.get("folder"):
+        return _folder_search(b, query, k)
     res = _rpc(kb, "kb.similarity_search", {"query": query, "k": k, "layer": "project"})
     hits = []
     for h in res.get("hits", []):
@@ -90,6 +118,11 @@ def ingest(kb, filename, text, metadata, ontology=None):
     b = kb_map()[kb]
     if not b.get("write"):
         raise RuntimeError(f"kb '{kb}' is read-only by policy")
+    if b.get("folder"):
+        os.makedirs(_folder(b), exist_ok=True)
+        with open(os.path.join(_folder(b), os.path.basename(filename)), "w", encoding="utf-8") as fh:
+            fh.write(text + "\n")
+        return {"job_id": f"local:{os.path.basename(filename)}"}
     job = _rpc(kb, "kb.documents.ingest",
                {"ontology": ontology or b["ontology"], "layer": "project",
                 "filename": filename, "text": text, "metadata": metadata})
