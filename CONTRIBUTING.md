@@ -4,7 +4,7 @@
 python3 -m unittest discover -s tests -t .
 ```
 
-Standard library only — the same command CI runs. They must pass.
+16 cases, standard library only — the same command CI runs. They must pass.
 
 ## What a change needs
 

@@ -64,7 +64,12 @@ reported nothing.
 
 ## Setup
 
-Requires Python 3.11+. Standard library, plus an OpenAI key for routing only.
+Python 3.11+ and the standard library, plus two things from outside:
+
+| | |
+|---|---|
+| **An OpenAI key** | routing only — one small call to decide which KB and which hand |
+| **[Skynet Harness](https://github.com/arupmmi07/skynet-harness)** | Ethan never spawns a coding agent itself; it calls `sky build`, and that is where the policy lives |
 
 ```bash
 git clone https://github.com/arupmmi07/ethan.git
@@ -74,8 +79,14 @@ cp config/kb-map.example.json config/kb-map.json
 ./run.sh
 ```
 
-Without `config/kb-map.json` Ethan falls back to the example and says so, so a clean
-checkout runs. See [docs/getting-started.md](docs/getting-started.md).
+Put the harness's `core/bin/sky` on your PATH, or set `sky.bin` in `config/ethan.json`,
+or export `SKY_BIN`. Without it Ethan still starts and routes — it refuses at the point
+of building and says which of the three to do, rather than failing somewhere less
+obvious.
+
+Without `config/kb-map.json` Ethan falls back to the shipped example and says so, so a
+clean checkout runs. The router and the hand are given the same map either way. See
+[docs/getting-started.md](docs/getting-started.md).
 
 ## Documentation
 
@@ -89,7 +100,7 @@ checkout runs. See [docs/getting-started.md](docs/getting-started.md).
 
 ## Status
 
-Working — **17 regression checks**, about 2,100 lines of Python. Standard library,
+Working — **16 tests**, about 2,100 lines of Python. Standard library,
 plus a routing model client. CI runs the suite on Python 3.11, 3.12 and 3.13.
 
 Mid-session input is deliberately closed until there is a real boundary for it.

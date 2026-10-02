@@ -27,6 +27,7 @@ new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`
 import itertools, json, os, shutil, subprocess, threading, time
 from .util import cfg, log, ROOT
 from . import store
+from .kb import kb_map_path          # imported by name: `kb` is a parameter here
 
 RUNS_DIR = os.path.join(ROOT, "state", "runs")
 
@@ -73,7 +74,7 @@ def sky_bin(conf):
 def build_command(conf, *, role, hand, brief, kb=None):
     """The one command Ethan runs. Core's global options go before `build`."""
     sky = conf.get("sky") or {}
-    cmd = [sky_bin(conf) or "sky", "--kb-map", os.path.join(ROOT, "config", "kb-map.json")]
+    cmd = [sky_bin(conf) or "sky", "--kb-map", kb_map_path()]
     if sky.get("policy"):
         cmd += ["--policy", os.path.expanduser(sky["policy"])]
     if kb:

@@ -2,6 +2,9 @@
 import json, os
 from .util import http_json, cfg, log
 
+CONFIG_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config")
+
 _MAP = None
 
 
@@ -9,6 +12,19 @@ _MAP = None
 # knowledge. "Brain" now means the whole assembly (KB + model + skills + policy +
 # tools), so calling a tenant a brain was wrong. The old file still loads for one
 # version so an existing install keeps working; the warning says what to rename.
+def kb_map_path():
+    """The map file actually in use — the real one, else the shipped example.
+
+    Two callers need this answer and they must not disagree. `kb_map()` reads it, and
+    `hands.build_command` passes it to `sky --kb-map`. Those used to be resolved
+    separately: the router would fall back to the example while the hand was handed a
+    path to `kb-map.json`, a file a clean checkout does not have. Everything looked
+    fine until something was actually built.
+    """
+    real = os.path.join(CONFIG_DIR, "kb-map.json")
+    return real if os.path.isfile(real) else os.path.join(CONFIG_DIR, "kb-map.example.json")
+
+
 def kb_map():
     global _MAP
     if _MAP is None:

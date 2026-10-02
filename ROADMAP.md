@@ -374,3 +374,11 @@ door name and class, that replies to a callback URL — the base for Slack and s
 <a id="eh-054"></a>**EH-054 — Voice and image doors.** Speech to text on the way in,
 text or speech on the way out; an image described as text. Each turns its input into text
 before `router.handle`. One door per claim.
+
+## Release review — 2026-10-01
+
+| ID | Feature | Area | P | Size | Status | Owner |
+|---|---|---|---|---|---|---|
+| EH-900 | Bring release documentation up to the shared standard | release | P1 | M | Ready | Unassigned |
+
+**Verified:** Add CHANGELOG.md, a keyless worked demo, numbered steps and PNG embeds. Resolve all six checker failures; reconcile existing P0 rows before tagging.

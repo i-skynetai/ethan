@@ -172,13 +172,6 @@ class Regressions(unittest.TestCase):
         self.assertEqual(run_all(), 0, f"failing checks: {failures}")
 
 
-if __name__ == "__main__":
-    print("Ethan regression tests")
-    n = run_all()
-    print(f"\n{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
-    sys.exit(1 if n else 0)
-
-
 class SkillsGoUnderTheSkillOntology(unittest.TestCase):
     """A skill is a procedure and is extracted under `sky_skill`.
 
@@ -334,3 +327,48 @@ class HandsGoThroughCore(unittest.TestCase):
         for bare in ('["claude"', "['claude'", '["codex"', '["kimi"', 'h["cmd"]', "review_cmd"):
             self.assertNotIn(bare, src, f"hands.py still builds a bare hand command: {bare}")
         self.assertIn("env=env", src, "Popen must be given an explicit environment")
+
+
+class OneAnswerForWhereTheKbMapIs(unittest.TestCase):
+    """The router and the hand must be looking at the same file.
+
+    They were not. `kb.kb_map()` fell back to `config/kb-map.example.json` when the real
+    map was absent — which is every clean checkout — while `hands.build_command` passed
+    `sky --kb-map config/kb-map.json` unconditionally. Nothing complained, because the
+    router had already loaded a perfectly good map by then. The disagreement only showed
+    up when something was actually built, and then as a path error about a file the
+    person had never been told to create.
+    """
+
+    def test_the_hand_is_given_the_map_the_router_read(self):
+        from ethan import hands
+        from ethan.kb import kb_map_path
+        cmd = hands.build_command({}, role="developer", hand="claude", brief="x")
+        self.assertIn("--kb-map", cmd)
+        self.assertEqual(cmd[cmd.index("--kb-map") + 1], kb_map_path())
+
+    def test_the_resolved_map_is_a_file_that_exists(self):
+        """A clean checkout must resolve to something real, not a hoped-for path."""
+        from ethan.kb import kb_map_path
+        self.assertTrue(os.path.isfile(kb_map_path()), f"{kb_map_path()} does not exist")
+
+    def test_the_real_map_wins_when_it_is_there(self):
+        from ethan import kb
+        real = os.path.join(kb.CONFIG_DIR, "kb-map.json")
+        if os.path.isfile(real):
+            self.assertEqual(kb.kb_map_path(), real)
+        else:
+            self.assertTrue(kb.kb_map_path().endswith("kb-map.example.json"))
+
+
+# This block used to sit in the middle of the file, so running it directly stopped here
+# and the classes below were never even defined — the documented command quietly covered
+# less than `unittest discover` did. It runs the whole file now: the printed checks
+# first, then every TestCase, so the two ways of running agree.
+if __name__ == "__main__":
+    print("Ethan regression tests")
+    failed = run_all()
+    print(f"\n{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
+    print("\nand the rest of the suite:")
+    result = unittest.main(exit=False, verbosity=2, argv=[sys.argv[0]]).result
+    sys.exit(1 if failed or not result.wasSuccessful() else 0)
