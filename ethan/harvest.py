@@ -283,6 +283,9 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
 def wait_job(kb_name, job_id, reply, tries=40):
     """Poll one ingest job and report the outcome through the door."""
     import time
+    if str(job_id).startswith("local:"):         # a folder KB writes at once; no job to poll
+        reply(f"ingest done: {job_id[len('local:'):]} written to {kb_name}")
+        return
     for _ in range(tries):
         time.sleep(6)
         try:

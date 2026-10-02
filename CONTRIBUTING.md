@@ -5,9 +5,11 @@
 ```bash
 python3 -m unittest discover -s tests -t .
 ./run.sh --demo
+ruff check --select E9,F .
 ```
 
-41 tests, standard library only — the same command CI runs. Both must pass. The demo
+46 tests, standard library only — the same command CI runs, and CI runs the same ruff
+check (syntax errors, undefined and unused names). All three must pass. The demo
 needs no key; if it stops printing `Session can close`, something on the main path broke.
 
 ## Claim a feature before you start

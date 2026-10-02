@@ -54,8 +54,17 @@ answering from none, and much harder to notice.
 
 ## Privacy classes
 
-Each door and each knowledge base carries a class: `personal` or `work`. A task that
-arrived through a personal door cannot file into a work knowledge base.
+Each knowledge base carries a class — `personal`, `work` or `client` — and each door
+lists the classes it may file into, in `config/doors.json`. As shipped:
+
+| Door | May file into |
+|---|---|
+| `telegram-private` | `personal` |
+| `console` | `personal`, `work`, `client` |
+| `cli` (`bin/ethan`) | `personal`, `work`, `client` |
+
+A door that is not listed may file nowhere. A caller of the console's server can name
+itself `console` or `cli`, nothing else, so it cannot claim another door's classes.
 
 This is checked at harvest, not at routing, because the class that matters is the one
 in force when something is written.

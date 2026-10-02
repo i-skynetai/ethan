@@ -1,6 +1,6 @@
 """Router model — the reasoning the ROUTER does, not a KB. Provider-pluggable. v0.1: OpenAI. Anthropic later = new function."""
 import json, os
-from .util import http_json, log
+from .util import http_json
 
 
 def ask(messages, json_schema=None):

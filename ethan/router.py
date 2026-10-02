@@ -1,5 +1,5 @@
 """The router — hint first, model only when the hint cannot decide; pick kb, pull context, brief, delegate, report."""
-import json, re
+import re
 from . import kb, brief, hands, harvest, llm, store
 from .util import log
 
@@ -208,7 +208,7 @@ def _handle(chat_id, text, reply, door, cwd):
         prior, task_id = None, None
         for i, step in enumerate(route["steps"], 1):
             h, goal = step["hand"], step["goal"]
-            task_id = store.add_task(chat_id, f"chain:{i}", kb_name, h, goal)
+            task_id = store.add_task(chat_id, f"chain:{i}", kb_name, h, goal, door)
             short = goal.split(".")[0][:150]
             reply(f"Step {i}/{len(route['steps'])} — {h}: {short}…")
             btxt = brief.render(f"{goal}\n\n(Original ask: {text})", hits, workdir,
@@ -231,7 +231,7 @@ def _handle(chat_id, text, reply, door, cwd):
 
     # build / review → delegate to a hand
     hand = route["hand"] if route["hand"] not in ("auto", "none") else ("codex" if kind == "review" else "claude")
-    task_id = store.add_task(chat_id, kind, kb_name, hand, text)
+    task_id = store.add_task(chat_id, kind, kb_name, hand, text, door)
     reply(f"Task #{task_id}: delegating to {hand} in {workdir or '(no repo)'} — I'll report back.")
     btxt = brief.render(text, hits, workdir)
     res = hands.run(hand, btxt, workdir, review=(kind == "review"), task_id=task_id,

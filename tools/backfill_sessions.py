@@ -11,7 +11,7 @@ Already-done sessions are skipped via a ledger, so re-running is safe.
 import argparse, json, os, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from ethan.util import load_env, log, ROOT, cfg          # noqa: E402
+from ethan.util import load_env, ROOT, cfg          # noqa: E402
 from ethan import kb, hands, redact, sessions        # noqa: E402
 
 LEDGER = os.path.join(ROOT, "state", "backfill.json")

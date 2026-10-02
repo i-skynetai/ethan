@@ -28,7 +28,17 @@ def _chat_id(raw):
     return raw if _CHAT_OK.match(raw) else CHAT
 
 
-def _ask(text, chat=CHAT, cwd=None):
+#: The doors that speak through this server. `bin/ethan` says it is the CLI, so its
+#: asks are recorded and policed as the CLI's, not the console page's. Any other
+#: name a caller sends is ignored: a door's privacy classes cannot be claimed.
+DOORS = ("console", "cli")
+
+
+def _door(raw):
+    return raw if raw in DOORS else CHAT
+
+
+def _ask(text, chat=CHAT, cwd=None, door=CHAT):
     """Run one ask in the background; replies land in the pull queue.
 
     The ask is stored by router.handle, not here: storing it twice used to put it
@@ -36,7 +46,7 @@ def _ask(text, chat=CHAT, cwd=None):
     def reply(msg):
         store.add_reply(chat, msg)
     try:
-        router.handle(chat, text, reply, door=CHAT, cwd=cwd)
+        router.handle(chat, text, reply, door=door, cwd=cwd)
     except Exception as e:                      # never let a bad ask kill the door
         store.add_reply(chat, f"error: {e}")
         log(f"console ask failed: {e}")
@@ -158,7 +168,7 @@ class Handler(BaseHTTPRequestHandler):
             chat = _chat_id(pl.get("chat"))
             status, info = harvest.ingest_document(
                 pl.get("path") or "", pl.get("doc_type") or "other",
-                CHAT, chat, cwd=pl.get("cwd"))
+                _door(pl.get("door")), chat, cwd=pl.get("cwd"))
             if status != "written":
                 return self._send(400, json.dumps({"status": status, "error": info}))
             # report the async job's outcome through the caller's reply queue
@@ -173,15 +183,16 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(n) or b"{}")
             text = (payload.get("text") or "").strip()
             chat = _chat_id(payload.get("chat"))
+            door = _door(payload.get("door"))
             cwd = payload.get("cwd") or None
             if cwd and not os.path.isdir(os.path.expanduser(cwd)):
                 cwd = None                      # a bad path must not strand the hand
         except Exception:
-            text, chat, cwd = "", CHAT, None
+            text, chat, cwd, door = "", CHAT, None, CHAT
         if not text:
             return self._send(400, json.dumps({"error": "empty ask"}))
-        threading.Thread(target=_ask, args=(text, chat, cwd), daemon=True).start()
-        return self._send(200, json.dumps({"ok": True, "chat": chat, "cwd": cwd}))
+        threading.Thread(target=_ask, args=(text, chat, cwd, door), daemon=True).start()
+        return self._send(200, json.dumps({"ok": True, "chat": chat, "cwd": cwd, "door": door}))
 
 
 def open_server(port=None):

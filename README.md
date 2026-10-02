@@ -84,6 +84,8 @@ secrets before writing. See [Architecture](docs/architecture.md).
 - Launch through the harness, never a bare agent: an explicit environment, a role and a
   hard time cap.
 - Close-out that always reports: kept, nothing kept and why, or refused and why.
+- A privacy wall on by default: Telegram, reachable from a phone, may file only into
+  personal KBs; the console and the `ethan` command may file into any.
 - A local console that refuses requests from other web pages and bodies over 64 KB.
 - A SQLite ledger of build and review tasks, their runs and logs, and every close-out
   write or refusal.
@@ -92,12 +94,12 @@ secrets before writing. See [Architecture](docs/architecture.md).
 
 - Not an agent that approves, merges or pushes. It picks and launches; you decide.
 - Not a policy engine. The harness enforces what a run may do; Ethan only chooses.
-- Not finished: status and inbox asks, a ledger of every route decision, and a
-  privacy wall that is on by default are open rows in the [roadmap](ROADMAP.md).
+- Not finished: status and inbox asks, and a ledger row for every route decision, are
+  open rows in the [roadmap](ROADMAP.md).
 
 ## Status
 
-Version 0.1.0. 41 tests, standard library only, run by CI on Python 3.11, 3.12 and 3.13:
+Version 0.1.0. 46 tests, standard library only, run by CI on Python 3.11, 3.12 and 3.13:
 `python3 -m unittest discover -s tests -t .`. The real hand path needs the harness and has
 been tested here only with a fake `sky`. Changes are listed in the [changelog](CHANGELOG.md).
 

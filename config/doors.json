@@ -1,5 +1,7 @@
 {
-  "telegram-private": { "classes": ["personal", "work", "client"] },
+  "_comment": "Which privacy classes each door may file into. A door not listed here may file nowhere. Telegram is reachable from a phone, so it may write only to personal KBs.",
+  "telegram-private": { "classes": ["personal"] },
   "console": { "classes": ["personal", "work", "client"] },
+  "cli": { "classes": ["personal", "work", "client"] },
   "backfill": { "classes": ["work", "client"] }
 }

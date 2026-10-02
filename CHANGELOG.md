@@ -15,12 +15,8 @@ The first release.
   written with no server.
 - `ETHAN_STATE_DIR` and `ETHAN_KB_MAP` move the ledger and the KB map; the demo and the
   tests use them so they never touch a real ledger.
+- CI runs `ruff check --select E9,F` beside the tests.
 - `tools/render-terminal.py` turns a command's real output into the picture in the README.
-
-### Known open
-
-- EH-007: the shipped `config/doors.json` lets every door write to every privacy class,
-  so the privacy wall is off until you narrow it.
 
 ### Fixed
 
@@ -37,6 +33,9 @@ The first release.
   (415) and a body over 64 KB (413).
 - EH-006: `ethan --ingest` picks the KB from the folder the file is in, never from the
   directory the command was run in.
+- EH-007: the privacy wall is on by default. Telegram may file only into personal KBs;
+  the console and the CLI may file into any. The CLI is now a door of its own, `cli`,
+  and every task row records the door it came through.
 - EH-008: every ask ends with exactly one close-out line — after an answer, a failed
   task or an error — so `bin/ethan` returns as soon as the work is done, and an error on
   the Telegram door is reported to the sender.

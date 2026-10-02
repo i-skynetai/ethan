@@ -43,6 +43,9 @@ def db():
         _DB.execute("""CREATE TABLE IF NOT EXISTS tasks(
             id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, kind TEXT, kb TEXT,
             hand TEXT, ask TEXT, state TEXT, result TEXT)""")
+        # the door an ask came through — added in 0.1.0, so an older database gains it here
+        if "door" not in [r[1] for r in _DB.execute("PRAGMA table_info(tasks)")]:
+            _DB.execute("ALTER TABLE tasks ADD COLUMN door TEXT")
         _DB.execute("""CREATE TABLE IF NOT EXISTS messages(
             id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, role TEXT, text TEXT)""")
         # one row per hand invocation — what the console shows as a "session"
@@ -74,10 +77,10 @@ def reap_orphans():
         return n
 
 
-def add_task(chat_id, kind, kb, hand, ask):
+def add_task(chat_id, kind, kb, hand, ask, door=None):
     with _LOCK:
-        cur = db().execute("INSERT INTO tasks(ts,chat_id,kind,kb,hand,ask,state) VALUES(?,?,?,?,?,?,?)",
-                           (time.time(), str(chat_id), kind, kb, hand, ask, "running"))
+        cur = db().execute("INSERT INTO tasks(ts,chat_id,kind,kb,hand,ask,state,door) VALUES(?,?,?,?,?,?,?,?)",
+                           (time.time(), str(chat_id), kind, kb, hand, ask, "running", door))
         db().commit()
         return cur.lastrowid
 
@@ -131,7 +134,7 @@ def recent_runs(n=30):
 
 
 def recent_tasks(n=40):
-    cols = "id,ts,chat_id,kind,kb,hand,ask,state"
+    cols = "id,ts,chat_id,kind,kb,hand,ask,state,door"
     rows = db().execute(f"SELECT {cols} FROM tasks ORDER BY id DESC LIMIT ?", (n,)).fetchall()
     return [dict(zip(cols.split(","), r)) for r in rows]
 

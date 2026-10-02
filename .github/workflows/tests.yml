@@ -23,3 +23,17 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run the suite
         run: python -m unittest discover -s tests -t . -v
+
+  lint:
+    # Syntax errors and undefined or unused names only (ruff E9 and F) — the checks
+    # that find real bugs, not style. Pinned so a new ruff release cannot fail CI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: pip install ruff==0.16.9
+      - name: Lint
+        run: ruff check --select E9,F .

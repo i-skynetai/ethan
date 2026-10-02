@@ -57,7 +57,7 @@ accepted.
 | EH-004 | [Chain steps run with the right role](#eh-004) | router | P0 | S | Done — 0.1.0 | @arupmmi07 |
 | EH-005 | [The console refuses requests from other web pages](#eh-005) | doors | P0 | S | Done — 0.1.0 | @arupmmi07 |
 | EH-006 | [A file is ingested by where it lives](#eh-006) | harvest | P0 | S | Done — 0.1.0 | @arupmmi07 |
-| EH-007 | [Doors ship with the privacy wall on](#eh-007) | doors | P0 | M | Needs decision | |
+| EH-007 | [Doors ship with the privacy wall on](#eh-007) | doors | P0 | M | Done — 0.1.0 | @arupmmi07 |
 | EH-008 | [Every ask ends with a close-out line](#eh-008) | doors | P0 | S | Done — 0.1.0 | @arupmmi07 |
 | EH-009 | [The ontology validator imports what it uses](#eh-009) — *good first issue* | tools | P0 | S | Done — 0.1.0 | @arupmmi07 |
 | EH-010 | [No private names or paths in the repository](#eh-010) | hygiene | P0 | S | Done — 0.1.0 | @arupmmi07 |
@@ -185,6 +185,8 @@ whether the CLI becomes its own door. *Done when:* the shipped config has at lea
 door that refuses a class, and a test proves a harvest through it is refused; the CLI's
 asks are recorded under their own door name. *Starts in:* `config/doors.json`,
 `harvest.apply`, `door_console._ask`.
+*Decided and done, 0.1.0:* Telegram may file only into `personal`; the console and a new
+`cli` door may file into every class; each task row records its door.
 
 <a id="eh-008"></a>**EH-008 — Every ask ends with a close-out line.** `bin/ethan` stops
 when it sees "Session can close" or "Not closing". Only a successful build, review or
@@ -397,4 +399,4 @@ before `router.handle`. One door per claim.
 | EH-900 | Bring release documentation up to the shared standard | release | P1 | M | Done — 0.1.0 | @arupmmi07 |
 
 **Verified:** Add CHANGELOG.md, a keyless worked demo, numbered steps and PNG embeds. Resolve all six checker failures; reconcile existing P0 rows before tagging.
-*Done, 0.1.0:* `check-docs.py` reports 0 FAIL and 0 WARN; EH-007 is the one P0 still open.
+*Done, 0.1.0:* `check-docs.py` reports 0 FAIL and 0 WARN, and no P0 row is open.

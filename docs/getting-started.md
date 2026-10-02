@@ -68,5 +68,5 @@ closed until there is a real boundary for it.
   and to you.
 - Act without a door. There is no scheduler and no unattended mode.
 - File a result into a KB whose privacy class the door does not list in
-  `config/doors.json`. The shipped file lists every class for every door, so this wall
-  is off until you narrow it — making it on by default is roadmap row EH-007.
+  `config/doors.json`. As shipped, Telegram may file only into `personal` KBs; the
+  console and the `ethan` command (the `cli` door) may file into any class.

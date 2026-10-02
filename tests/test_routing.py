@@ -112,7 +112,7 @@ class NoSilentFallbackToTheFirstKb(unittest.TestCase):
         self.assertIsNone(store.recent_tasks(1)[0]["kb"], "the ledger must record no KB")
 
     def test_a_kb_outside_the_hinted_pair_is_refused(self):
-        with stubbed(route("question", "notes_kb")) as stub:
+        with stubbed(route("question", "notes_kb")):
             replies = handle("what does the invoice say")
         self.assertTrue(any("No knowledge base matched" in r for r in replies), replies)
 
@@ -264,7 +264,7 @@ class EveryAskEndsWithOneCloseOutLine(unittest.TestCase):
     """EH-008."""
 
     def close_outs(self, the_route, ask="hello", raising=False):
-        with stubbed(the_route) as stub:
+        with stubbed(the_route):
             if raising:
                 llm.ask = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("model down"))
             replies = handle(ask)
@@ -282,7 +282,7 @@ class EveryAskEndsWithOneCloseOutLine(unittest.TestCase):
         self.assertEqual(len(closes), 1, replies)
 
     def test_a_failed_task_still_closes(self):
-        with stubbed(route("build", "billing_kb", "auto")) as stub:
+        with stubbed(route("build", "billing_kb", "auto")):
             hands.run = lambda *a, **k: {"ok": False, "out": "it broke"}
             replies = handle("please tidy up")
         self.assertEqual(len([r for r in replies if r.startswith(router.CLOSE_OUT)]), 1, replies)
@@ -336,6 +336,59 @@ class TheOntologyValidatorStarts(unittest.TestCase):
                               "validate_ontology.py"), "x.yaml"], capture_output=True, text=True, env=env)
         self.assertEqual(out.returncode, 2, out.stderr)
         self.assertIn("PyYAML is not installed", out.stdout)
+
+
+class DoorsShipWithThePrivacyWallOn(unittest.TestCase):
+    """EH-007. Telegram files only into personal KBs; the CLI is a door of its own."""
+
+    DECISION = {"keep": True, "kb": "billing_kb", "title": "a-note",
+                "body": "A note long enough to pass the minimum length for a harvest.", "why": "w"}
+
+    def test_the_shipped_config_has_telegram_refuse_work(self):
+        from ethan.util import cfg
+        doors = cfg("doors.json")
+        self.assertEqual(doors["telegram-private"]["classes"], ["personal"])
+        self.assertIn("work", doors["cli"]["classes"])
+        self.assertIn("work", doors["console"]["classes"])
+
+    def test_a_harvest_through_telegram_into_a_work_kb_is_refused(self):
+        saved = kb._MAP
+        kb._MAP = MAP
+        try:
+            status, msg = harvest.apply(dict(self.DECISION), "telegram-private", "t", "claude")
+        finally:
+            kb._MAP = saved
+        self.assertEqual(status, "refused", msg)
+        self.assertIn("may not write", msg)
+
+    def test_the_same_harvest_through_the_cli_passes_the_wall(self):
+        folder = tempfile.mkdtemp()
+        saved = kb._MAP
+        kb._MAP = {"billing_kb": dict(MAP["billing_kb"], folder=folder)}
+        try:
+            status, msg = harvest.apply(dict(self.DECISION), "cli", "t", "claude")
+        finally:
+            kb._MAP = saved
+        self.assertEqual(status, "written", msg)
+
+    def test_cli_asks_are_recorded_under_the_cli_door(self):
+        import time
+        with stubbed(route("build", "billing_kb", "auto")), console() as port:
+            c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+            c.request("POST", "/api/ask", headers={"Content-Type": "application/json"},
+                      body=json.dumps({"text": "tidy the docs", "chat": "eh007-cli", "door": "cli"}))
+            c.getresponse().read(); c.close()
+            for _ in range(50):
+                rows = [t for t in store.recent_tasks(10) if t["chat_id"] == "eh007-cli"]
+                if rows:
+                    break
+                time.sleep(0.1)
+        self.assertTrue(rows, "the ask never reached the ledger")
+        self.assertEqual(rows[0]["door"], "cli")
+
+    def test_a_caller_cannot_claim_another_doors_classes(self):
+        self.assertEqual(door_console._door("backfill"), "console")
+        self.assertEqual(door_console._door("cli"), "cli")
 
 
 class NoAbsoluteHomePaths(unittest.TestCase):

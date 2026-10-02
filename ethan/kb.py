@@ -1,6 +1,6 @@
 """Thin client for KB kbs (MCP JSON-RPC over HTTP). Never mounts the full tool surface."""
 import json, os, re
-from .util import http_json, cfg, log
+from .util import log
 
 CONFIG_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config")
