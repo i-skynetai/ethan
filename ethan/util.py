@@ -28,7 +28,7 @@ def load_env():
     path = os.path.join(ROOT, ".env")
     if not os.path.exists(path):
         return
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         lines = list(fh)
     for line in lines:
         line = line.strip()
@@ -41,7 +41,7 @@ def load_env():
 
 
 def cfg(name):
-    with open(os.path.join(ROOT, "config", name)) as f:
+    with open(os.path.join(ROOT, "config", name), encoding="utf-8") as f:
         return json.load(f)
 
 

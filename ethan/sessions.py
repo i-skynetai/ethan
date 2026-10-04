@@ -38,7 +38,7 @@ def _text_of(content):
 def distil(path, max_chars=14000):
     """Read one transcript; return metadata plus the human/assistant prose."""
     turns, meta = [], {}
-    with open(path, errors="replace") as f:
+    with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             try:
                 o = json.loads(line)

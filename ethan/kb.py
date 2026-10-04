@@ -31,7 +31,7 @@ def kb_map():
     global _MAP
     if _MAP is None:
         path = kb_map_path()
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             _MAP = json.load(fh)
         if path.endswith("kb-map.example.json"):
             # A clean checkout has no kb-map.json — it is gitignored because it

@@ -24,7 +24,7 @@ task_id=None)` returns `{"ok", "out", "run_id"}`. Two optional arguments are
 new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`,
 `sky_dir` and `usage`.
 """
-import itertools, json, os, shutil, subprocess, threading, time
+import itertools, json, os, shutil, subprocess, sys, threading, time
 from .util import cfg, log, state_dir
 from . import store
 from .kb import kb_map_path          # imported by name: `kb` is a parameter here
@@ -32,7 +32,10 @@ from .kb import kb_map_path          # imported by name: `kb` is a parameter her
 #: What `sky build` may inherit from Ethan. Listed, not filtered: a filter has
 #: to be updated every time a new secret appears in Ethan's environment, and
 #: nobody remembers to.
-ENV_ALLOWLIST = ("PATH", "HOME", "LANG", "LC_ALL", "TERM", "TMPDIR", "USER", "SHELL")
+ENV_ALLOWLIST = ("PATH", "HOME", "LANG", "LC_ALL", "TERM", "TMPDIR", "USER", "SHELL",
+                 # Windows: what a process needs to start and find its home and temp.
+                 "SYSTEMROOT", "COMSPEC", "PATHEXT", "USERPROFILE", "USERNAME",
+                 "TEMP", "TMP", "APPDATA", "LOCALAPPDATA")
 
 #: Ethan's task kinds, to the four roles core knows. Anything unrecognised is a
 #: reviewer — read-only — because the safe default is the one that cannot edit.
@@ -45,6 +48,10 @@ ROLE_FOR_KIND = {
 }
 
 _RUN_SEQ = itertools.count(1)
+
+#: Start `sky build` in a group of its own, so a hung run can be stopped whole.
+_NEW_GROUP = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+              if sys.platform == "win32" else {"start_new_session": True})
 
 
 def _log_path(hand):
@@ -67,13 +74,33 @@ def sky_bin(conf):
     if configured:
         path = os.path.expanduser(configured)
         return path if os.path.isfile(path) and os.access(path, os.X_OK) else None
-    return shutil.which("sky")
+    found = shutil.which("sky")
+    if found is None and sys.platform == "win32":
+        # core's `bin/sky` has no extension, so Windows' PATHEXT lookup misses it.
+        for d in os.environ.get("PATH", "").split(os.pathsep):
+            if d and os.path.isfile(os.path.join(d, "sky")):
+                return os.path.join(d, "sky")
+    return found
+
+
+def _launcher(path):
+    """argv for starting `path`. Windows cannot run a `#!` script itself, so a
+    Python script — core's `sky` is one — is handed to this interpreter."""
+    if sys.platform == "win32" and not path.lower().endswith((".exe", ".bat", ".cmd")):
+        try:
+            with open(path, "rb") as fh:
+                first = fh.readline()
+        except OSError:
+            first = b""
+        if first.startswith(b"#!") and b"python" in first:
+            return [sys.executable, path]
+    return [path]
 
 
 def build_command(conf, *, role, hand, brief, kb=None):
     """The one command Ethan runs. Core's global options go before `build`."""
     sky = conf.get("sky") or {}
-    cmd = [sky_bin(conf) or "sky", "--kb-map", kb_map_path()]
+    cmd = _launcher(sky_bin(conf) or "sky") + ["--kb-map", kb_map_path()]
     if sky.get("policy"):
         cmd += ["--policy", os.path.expanduser(sky["policy"])]
     if kb:
@@ -129,7 +156,13 @@ def _stop(p):
         if p.poll() is not None:
             return
         try:
-            if hasattr(os, "killpg"):
+            if sys.platform == "win32":
+                # No process groups to signal: taskkill /T takes the whole tree.
+                force = ["/F"] if step == "kill" else []
+                subprocess.run(["taskkill", *force, "/T", "/PID", str(p.pid)],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               timeout=10)
+            elif hasattr(os, "killpg"):
                 os.killpg(os.getpgid(p.pid), 15 if step == "terminate" else 9)
             else:
                 getattr(p, step)()
@@ -176,7 +209,7 @@ def run(hand, brief_text, repo=None, review=False, task_id=None, kb=None, kind=N
 
     tail = []
     try:
-        lf = open(path, "w", buffering=1)
+        lf = open(path, "w", buffering=1, encoding="utf-8")
     except Exception as e:
         store.end_run(run_id, "failed")
         return {"ok": False, "out": f"cannot open run log: {e}", "run_id": run_id}
@@ -190,8 +223,8 @@ def run(hand, brief_text, repo=None, review=False, task_id=None, kb=None, kind=N
             cmd, cwd=wd, env=env,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
-            text=True, bufsize=1,
-            start_new_session=True)
+            text=True, encoding="utf-8", errors="replace", bufsize=1,
+            **_NEW_GROUP)
     except FileNotFoundError:
         lf.close(); store.end_run(run_id, "failed")
         return {"ok": False, "out": "sky could not be started", "run_id": run_id}

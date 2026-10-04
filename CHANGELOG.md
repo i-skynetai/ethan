@@ -3,6 +3,19 @@
 Every release, newest first. Versions follow [semantic versioning](https://semver.org).
 IDs refer to rows in the [roadmap](ROADMAP.md).
 
+## Unreleased
+
+### Fixed
+
+- EH-051 (in progress): Ethan runs on Windows. A Python `sky` script, such as core's
+  `bin/sky` or `demo/fake-sky`, is started through the Python interpreter, and an
+  extensionless `sky` on `PATH` is found. A hung `sky build` is stopped with
+  `taskkill /T` in its own process group instead of a Unix group kill. `sky build` also
+  inherits the Windows variables a process needs to start (`SYSTEMROOT`, `TEMP`,
+  `USERPROFILE` and similar; no secrets). Run logs, the KB map, `.env`, config and
+  transcripts are read and written as UTF-8 whatever the system's code page. The two
+  tests that run a `#!/bin/sh` fake `sky` are skipped on Windows.
+
 ## 0.1.0 — 2026-10-01
 
 The first release.

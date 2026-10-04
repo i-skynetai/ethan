@@ -229,7 +229,7 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
     if not os.path.isfile(path):
         return "refused", f"file not found: {path}"
     try:
-        with open(path, errors="replace") as fh:
+        with open(path, encoding="utf-8", errors="replace") as fh:
             text = fh.read()
     except Exception as e:
         return "refused", f"cannot read {path}: {e}"

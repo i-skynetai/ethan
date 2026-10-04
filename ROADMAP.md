@@ -103,7 +103,7 @@ accepted.
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
 | EH-050 | [`pip install` and an `ethan` command](#eh-050) | distribution | P1 | S | Ready | |
-| EH-051 | [CI on macOS and Windows](#eh-051) | distribution | P2 | M | Ready | |
+| EH-051 | [CI on macOS and Windows](#eh-051) | distribution | P2 | M | In progress | @arupmmi07, 2026-10-03 |
 | EH-052 | [A recorded demo in the README](#eh-052) | docs | P1 | S | Ready | |
 | EH-053 | [A webhook door](#eh-053) | doors | P2 | M | Proposed | |
 | EH-054 | [Voice and image doors](#eh-054) | doors | P3 | L | Proposed | |

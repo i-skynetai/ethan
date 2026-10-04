@@ -272,6 +272,7 @@ class HandsGoThroughCore(unittest.TestCase):
         self.assertIn("sky is not installed", res["out"])
         self.assertNotIn("run_id", res, "no run row should exist for a launch that never began")
 
+    @unittest.skipIf(sys.platform == "win32", "runs a #!/bin/sh fake sky directly; Windows has no /bin/sh")
     def test_cores_json_line_is_what_ethan_reads(self):
         """A fake `sky` on PATH: prose, then the one structured line."""
         from ethan import hands
@@ -300,6 +301,7 @@ class HandsGoThroughCore(unittest.TestCase):
         self.assertEqual(res["usage"]["cost_usd"], 0.0123)
         self.assertEqual(res["outcome"], "finished")
 
+    @unittest.skipIf(sys.platform == "win32", "runs a #!/bin/sh fake sky directly; Windows has no /bin/sh")
     def test_a_structured_refusal_is_a_result_not_a_crash(self):
         from ethan import hands
         fake = tempfile.mkdtemp()
