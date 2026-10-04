@@ -10,6 +10,8 @@ os.environ.setdefault("ETHAN_STATE_DIR", tempfile.mkdtemp(prefix="ethan-test-sta
 from ethan import util  # noqa: E402
 
 PY = sys.executable
+#: Nothing listens on port 1, so these tests prove the CLI needs no running service.
+NO_SERVICE = {**os.environ, "PYTHONUTF8": "1", "ETHAN_CONSOLE_PORT": "1"}
 
 
 class Packaging(unittest.TestCase):
@@ -23,13 +25,13 @@ class Packaging(unittest.TestCase):
 
     def test_the_cli_module_prints_usage(self):
         out = subprocess.run([PY, "-m", "ethan.cli", "--help"], cwd=ROOT, capture_output=True, text=True,
-                             env={**os.environ, "PYTHONUTF8": "1"}, timeout=60)
+                             env=NO_SERVICE, timeout=60)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("ethan --status", out.stdout)
 
     def test_bin_ethan_is_the_same_command(self):
         out = subprocess.run([PY, os.path.join(ROOT, "bin", "ethan"), "--help"], cwd=ROOT, capture_output=True,
-                             text=True, env={**os.environ, "PYTHONUTF8": "1"}, timeout=60)
+                             text=True, env=NO_SERVICE, timeout=60)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("ethan --status", out.stdout)
 

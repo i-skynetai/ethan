@@ -77,6 +77,8 @@ IDs refer to rows in the [roadmap](ROADMAP.md).
 
 - `bin/ethan` with a reused `--chat` printed the conversation's earlier replies before
   the new ones; it now starts from the end of the queue at the moment of the ask.
+- `ethan --help` needed a running service and failed with "not running" without one.
+  Help is answered first now; the tests for it run against a port nothing listens on.
 
 - EH-051 (in progress): Ethan runs on Windows. A Python `sky` script, such as core's
   `bin/sky` or `demo/fake-sky`, is started through the Python interpreter, and an

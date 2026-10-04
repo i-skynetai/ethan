@@ -71,6 +71,9 @@ def main():
     ap.add_argument("ask", nargs="*")
     a = ap.parse_args()
 
+    if a.help or (not a.ask and not a.status and not a.ingest):
+        return print(__doc__.strip())          # help needs no service
+
     try:
         get("/api/state", timeout=4)
     except Exception:
