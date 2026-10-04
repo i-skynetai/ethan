@@ -1,6 +1,6 @@
 # Ethan
 
-[![tests](https://github.com/arupmmi07/ethan/actions/workflows/tests.yml/badge.svg)](https://github.com/arupmmi07/ethan/actions/workflows/tests.yml)
+[![tests](https://github.com/i-skynetai/ethan/actions/workflows/tests.yml/badge.svg)](https://github.com/i-skynetai/ethan/actions/workflows/tests.yml)
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![licence](https://img.shields.io/badge/licence-Apache%202.0-blue)](LICENSE)
 
@@ -28,7 +28,7 @@ job — not the engineering judgement, the operating.
 - **Hint** — a keyword a KB claims, such as `PROJ-`. An ask that contains it goes to
   that KB without asking a model.
 - **Hand** — the coding agent that does the work (Claude Code, Codex, Kimi), started
-  through `sky build` from [Skynet Harness](https://github.com/arupmmi07/skynet-harness),
+  through `sky build` from [Skynet Harness](https://github.com/i-skynetai/skynet-harness),
   which applies the role and the policy.
 - **Close-out** — after a run, the hand says what is worth keeping, and Ethan checks it
   against policy before writing it to the KB.
@@ -38,7 +38,7 @@ job — not the engineering judgement, the operating.
 You need Python 3.11 or newer and git. No key, no account, no server:
 
 ```bash
-git clone https://github.com/arupmmi07/ethan.git
+git clone https://github.com/i-skynetai/ethan.git
 cd ethan
 ./run.sh --demo
 ```

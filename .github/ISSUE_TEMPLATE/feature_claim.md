@@ -4,7 +4,7 @@ about: Take a Ready feature from ROADMAP.md
 title: "Claim EH-XXX: "
 ---
 
-**Feature** — the ID and name from [ROADMAP.md](https://github.com/arupmmi07/ethan/blob/main/ROADMAP.md), e.g. `EH-023 — Answer
+**Feature** — the ID and name from [ROADMAP.md](https://github.com/i-skynetai/ethan/blob/main/ROADMAP.md), e.g. `EH-023 — Answer
 "status" asks from the ledger`.
 
 **Plan** — two or three sentences: what you will change, and the test you will add.

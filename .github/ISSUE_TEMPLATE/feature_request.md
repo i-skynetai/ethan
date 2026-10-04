@@ -3,7 +3,7 @@ name: Propose a feature
 about: Something Ethan should do, or a door, knowledge base or hand it should reach, that is not on the roadmap
 ---
 
-<!-- Check ROADMAP.md first: https://github.com/arupmmi07/ethan/blob/main/ROADMAP.md
+<!-- Check ROADMAP.md first: https://github.com/i-skynetai/ethan/blob/main/ROADMAP.md
 If it is there, use "Claim a feature" instead. An accepted proposal gets an EH ID and a
 row in ROADMAP.md. -->
 
