@@ -1,9 +1,6 @@
 """Thin client for KB kbs (MCP JSON-RPC over HTTP). Never mounts the full tool surface."""
 import json, os, re
-from .util import log
-
-CONFIG_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config")
+from .util import log, config_dir
 
 _MAP = None
 
@@ -23,8 +20,8 @@ def kb_map_path():
     """
     if os.environ.get("ETHAN_KB_MAP"):          # the demo brings its own map
         return os.path.abspath(os.path.expanduser(os.environ["ETHAN_KB_MAP"]))
-    real = os.path.join(CONFIG_DIR, "kb-map.json")
-    return real if os.path.isfile(real) else os.path.join(CONFIG_DIR, "kb-map.example.json")
+    real = os.path.join(config_dir(), "kb-map.json")
+    return real if os.path.isfile(real) else os.path.join(config_dir(), "kb-map.example.json")
 
 
 def kb_map():

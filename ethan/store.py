@@ -59,6 +59,12 @@ def db():
         _DB.execute("""CREATE TABLE IF NOT EXISTS harvests(
             id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, hand TEXT, kb TEXT,
             filename TEXT, why TEXT, state TEXT)""")
+        # asks passed to a running session through the message bridge (relay.py).
+        # Written before the bridge is called, so a crash cannot lose what was sent.
+        _DB.execute("""CREATE TABLE IF NOT EXISTS relays(
+            id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, door TEXT, ask TEXT, mode TEXT,
+            candidates TEXT, target TEXT, target_ref TEXT, bridge_key TEXT, message_id TEXT,
+            state TEXT, note TEXT, result TEXT, updated REAL, purpose TEXT)""")
         _DB.commit()
     return _DB
 
@@ -102,6 +108,15 @@ def recent(chat_id, n=8):
     rows = db().execute("SELECT role,text FROM messages WHERE chat_id=? ORDER BY id DESC LIMIT ?",
                         (str(chat_id), n)).fetchall()
     return [{"role": r, "content": t} for r, t in reversed(rows)]
+
+
+def conversation(chat_id):
+    """Console history combines user turns with the replies actually shown."""
+    with _LOCK:
+        d = db()
+        rows = d.execute("SELECT ts,role,text FROM messages WHERE chat_id=? AND role='user' UNION ALL SELECT ts,'assistant',text FROM replies WHERE chat_id=? ORDER BY ts", (str(chat_id), str(chat_id))).fetchall()
+        after = d.execute("SELECT COALESCE(MAX(id),0) FROM replies WHERE chat_id=?", (str(chat_id),)).fetchone()[0]
+    return {"messages": [{"role": role, "text": text} for _, role, text in rows[-100:]], "after": after}
 
 
 def last_result(chat_id):
@@ -181,3 +196,66 @@ def replies_since(chat_id, after_id=0):
     rows = db().execute("SELECT id,ts,text FROM replies WHERE chat_id=? AND id>? ORDER BY id",
                         (str(chat_id), after_id)).fetchall()
     return [{"id": i, "ts": t, "text": x} for i, t, x in rows]
+
+
+# ── relays to running sessions ──────────────────────────────────────────────
+_RELAY_COLS = ("id,ts,chat_id,door,ask,mode,candidates,target,target_ref,bridge_key,message_id,"
+               "state,note,result,updated,purpose")
+
+
+def add_relay(chat_id, door, ask, mode, candidates=None, purpose=None):
+    """A relay starts as a question ("which session?") when there are candidates to
+    choose from, and as an unsent row otherwise."""
+    import json
+    with _LOCK:
+        now = time.time()
+        cur = db().execute(
+            "INSERT INTO relays(ts,chat_id,door,ask,mode,candidates,state,updated,purpose) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
+            (now, str(chat_id), door, ask, mode, json.dumps(candidates) if candidates else None,
+             "needs-target" if candidates else "new", now, purpose))
+        db().commit()
+        return cur.lastrowid
+
+
+_RELAY_FIELDS = {"state", "target", "target_ref", "bridge_key", "message_id", "note", "result"}
+
+
+def update_relay(relay_id, **fields):
+    bad = set(fields) - _RELAY_FIELDS
+    if bad:
+        raise ValueError(f"not a relay field: {sorted(bad)}")
+    with _LOCK:
+        sets = ", ".join(f"{k}=?" for k in fields)
+        db().execute(f"UPDATE relays SET {sets}, updated=? WHERE id=?",
+                     (*fields.values(), time.time(), relay_id))
+        db().commit()
+
+
+def relay(relay_id):
+    row = db().execute(f"SELECT {_RELAY_COLS} FROM relays WHERE id=?", (relay_id,)).fetchone()
+    return dict(zip(_RELAY_COLS.split(","), row)) if row else None
+
+
+def open_question(chat_id):
+    """The relay still waiting for "which session?" in this conversation, if any."""
+    row = db().execute(f"SELECT {_RELAY_COLS} FROM relays WHERE chat_id=? AND state='needs-target' "
+                       "ORDER BY id DESC LIMIT 1", (str(chat_id),)).fetchone()
+    return dict(zip(_RELAY_COLS.split(","), row)) if row else None
+
+
+#: Bridge states in which the target has not answered yet, plus Ethan's own "sending".
+RELAY_OPEN = ("sending", "queued", "delivered", "acknowledged")
+
+
+def open_relays(chat_id=None):
+    q = f"SELECT {_RELAY_COLS} FROM relays WHERE state IN ({','.join('?' * len(RELAY_OPEN))})"
+    args = RELAY_OPEN
+    if chat_id is not None:
+        q += " AND chat_id=?"; args = (*RELAY_OPEN, str(chat_id))
+    return [dict(zip(_RELAY_COLS.split(","), r)) for r in db().execute(q + " ORDER BY id", args).fetchall()]
+
+
+def recent_relays(n=20):
+    rows = db().execute(f"SELECT {_RELAY_COLS} FROM relays ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+    return [dict(zip(_RELAY_COLS.split(","), r)) for r in rows]

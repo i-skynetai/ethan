@@ -54,6 +54,14 @@ def main():
         log(f"console door cannot open: {e}. Set ETHAN_CONSOLE_PORT to a free port.")
     if console:
         threading.Thread(target=console.serve_forever, daemon=True).start()
+    # Relays to running sessions are followed until they are answered. The first pass
+    # recovers anything a crash left half-sent; nothing is ever sent twice.
+    from . import clock, relay
+    threading.Thread(target=clock.ticker, daemon=True).start()   # reminders and read-only checks
+    if relay.bridge_dir():
+        threading.Thread(target=relay.follower, daemon=True).start()
+    else:
+        log("no message bridge configured (ETHAN_BRIDGE_DIR) — relays to running sessions are off")
     door_telegram.run()
     if console is None:
         log("no door is open — stopping")

@@ -1,7 +1,8 @@
 """The router — hint first, model only when the hint cannot decide; pick kb, pull context, brief, delegate, report."""
 import re
-from . import kb, brief, hands, harvest, llm, store
+from . import kb, brief, clock, hands, harvest, llm, relay, status, store, todo, watch
 from .util import log
+from .character import VOICE
 
 ROUTE_SCHEMA = {
     "type": "object", "additionalProperties": False,
@@ -133,6 +134,16 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None):
 def _handle(chat_id, text, reply, door, cwd):
     history = store.recent(chat_id)              # read before this ask is stored
     store.remember(chat_id, "user", text)        # stored once, whatever the door
+    # Passing an ask to a session that is already running is decided before any
+    # routing: it must never fall through to a build, which would start a new one.
+    if relay.take(chat_id, text, reply, door, cwd):
+        return
+    if watch.take(chat_id, text, reply, door):   # "watch mail through … every weekday at …: …"
+        return                                   # before the clock, which would hear only "every … at"
+    if clock.take(chat_id, text, reply, door):   # "remind me …", "every weekday at …"
+        return
+    if todo.take(chat_id, text, reply, door):    # "add task: …", "my tasks", "done #3"
+        return
     bmap = kb.kb_map()
     hinted, hinted_hand = _hint_kbs(text), _hint_hand(text)
     hinted_kind = _hint_kind(text)
@@ -151,6 +162,11 @@ def _handle(chat_id, text, reply, door, cwd):
     log(f"route: {route}")
 
     kind = route["kind"]
+    if door == clock.DOOR and kind in ("build", "review", "chain"):
+        # The clock may remind and read. Starting a hand needs a person at a door.
+        reply(f"Not started: this was scheduled, and the clock may only remind and read, "
+              f"not start a {kind}. Ask for it yourself when you want it run.")
+        return
     choices = hinted if len(hinted) > 1 else list(bmap)
     kb_name = route["kb"] if route["kb"] in choices else None
     b = bmap[kb_name] if kb_name else {}
@@ -169,12 +185,15 @@ def _handle(chat_id, text, reply, door, cwd):
         reply(out)
         return
 
-    if kind in ("status", "updates"):
-        reply("I do not answer status or inbox asks yet (roadmap EH-023 and EH-028). "
-              "`ethan --status` lists running tasks; I can answer questions and run build or review tasks.")
+    if kind == "status":                        # from the ledger, no second model call
+        reply(status.text())
+        return
+    if kind == "updates":
+        reply("I do not read mail or notifications yet. That comes through a session's own "
+              "connectors (roadmap EH-063). I can tell you what is running and what is pending.")
         return
     if kind == "chat":
-        out = llm.ask([{"role": "system", "content": "You are Ethan, a concise personal agent."},
+        out = llm.ask([{"role": "system", "content": VOICE},
                        *history, {"role": "user", "content": text}])
         store.remember(chat_id, "assistant", out)
         reply(out)

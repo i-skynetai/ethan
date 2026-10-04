@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ethan-agent"
+version = "0.2.0"
+description = "A personal assistant that hands the work to Claude and Codex, and keeps the clock, the reach, the rules and the record."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.11"
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/i-skynetai/ethan"
+
+[project.scripts]
+ethan = "ethan.cli:main"
+ethan-service = "ethan.main:main"
+
+[tool.setuptools]
+packages = ["ethan"]
+
+[tool.setuptools.package-data]
+ethan = ["defaults/*.json"]

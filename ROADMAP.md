@@ -47,6 +47,166 @@ accepted.
 
 ## Features
 
+### Personal assistant console
+
+| ID | Feature | Area | P | Size | Status | Owner |
+|---|---|---|---|---|---|---|
+| EH-055 | Conversation-first console and read-only agent-bridge session registry; distinguish registrations from live availability | doors | P1 | M | In review | Codex, 2026-10-04 |
+| EH-056 | Grounded assistant character and activity-driven presence | doors | P1 | S | In review | Codex, 2026-10-04 |
+| EH-057 | Presence-first character scene with conversation and details on demand | doors | P1 | S | In review | Codex, 2026-10-04 |
+
+EH-055 acceptance: show registered Claude and Codex sessions when a local bridge database is configured; never label stale registration status as live; missing bridge is explained; conversation runs oldest-first with the user's messages preserved; historical runs and logs remain available as details. Reading the registry sends no messages and creates no sessions. Bridge task dispatch and local-folder Harness compatibility remain separate integration work.
+
+### Hand off to a running session
+
+Some work belongs with a coding session that is already open and already has the
+context. Ethan passes the ask to it through a local message bridge. It never starts a
+new session in its place, and it never wakes a closed one. Starting new work stays
+with `sky build`.
+
+| ID | Feature | Area | P | Size | Status | Owner |
+|---|---|---|---|---|---|---|
+| EH-058 | [Relay an ask to a running session](#eh-058) | router | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-059 | [Follow a relay to its end, across restarts](#eh-059) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-060 | [A local folder KB works with `sky build`](#eh-060) | kb | P1 | S | Proposed | |
+
+<a id="eh-058"></a>**EH-058 — Relay an ask to a running session.** "Ask the running
+Claude session to work on EH-023" was classed as a build. Ethan started a new
+`sky build` run instead, and that run failed. *Done when:* an ask that says to
+ask, tell or send something to a session is classed `relay` by a rule, with no model
+call. The target is matched against the bridge's registered sessions, by name first,
+then by agent and project. If no session matches, or more than one does, Ethan asks
+which one and sends nothing. A relay is review-only unless the ask says the session
+should implement or own the work. The bridge's message id and state are recorded, and
+the reply says honestly what that state means: a queued message has not been read. A
+relay never starts a hand. Tests use a fake bridge and cover one match, no match, more
+than one match, the answer to the question, and a build ask that must not relay.
+*Starts in:* `ethan/router.py`, a new `ethan/relay.py`.
+
+<a id="eh-059"></a>**EH-059 — Follow a relay to its end, across restarts.** *Done
+when:* open relays are checked against the bridge until they are completed or failed;
+the answer comes back to the door and conversation that asked; after a restart, open
+relays are checked again, never sent again; "what is pending?" lists open relays with
+their real state and age. Tests use a fake bridge for every state, a restart, and a
+failed delivery. *Depends on:* EH-058.
+
+<a id="eh-060"></a>**EH-060 — A local folder KB works with `sky build`.** A build
+routed to a KB that is a local folder was reported to fail the harness's KB check, so
+the first real task on a fresh install fails. It is Proposed until it is reproduced.
+*Done when:* a build with a folder KB reaches the hand,
+checked with a fake `sky`.
+
+### Toward a personal assistant
+
+The [vision](docs/vision.md) explains these rows. Ethan decides when and who, and
+Claude or Codex does the work. The scope of each row must be agreed before anyone
+claims it, which is why they are Proposed or Needs decision.
+
+| ID | Feature | Area | P | Size | Status | Owner |
+|---|---|---|---|---|---|---|
+| EH-061 | [Reminders and recurring checks on Ethan's own clock](#eh-061) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-062 | [Get hold of you: desktop, then phone](#eh-062) | doors | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-070 | [Call you when it is urgent and nothing else reached you](#eh-070) | doors | P2 | M | Needs decision | |
+| EH-063 | [Watch a source through an agent's own connectors](#eh-063) | sources | P1 | L | In review | Claude (ethan), 2026-10-04 |
+| EH-064 | [Meeting notes and action items from a transcript](#eh-064) | sources | P2 | L | Needs decision | |
+| EH-065 | [One task list from every source](#eh-065) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-066 | [Ethan's own identity, everywhere it acts](#eh-066) | trust | P1 | M | Needs decision | |
+| EH-067 | [Guardrails as one written policy](#eh-067) | trust | P1 | M | Needs decision | |
+| EH-068 | [Evals for the assistant's behaviour](#eh-068) | trust | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-069 | [Research asks, answered with sources](#eh-069) | router | P2 | M | Proposed | |
+
+<a id="eh-061"></a>**EH-061 — Reminders and recurring checks on Ethan's own clock.**
+Ethan acts only when someone asks through a door. It cannot remind you of anything. This
+row is the first step on [EH-043](#eh-043): the clock may only remind and read, never
+send or change anything. *Done when:* "remind me at 15:00 to send the report" and
+"every weekday at 09:00, ask the codex session to check my open reviews" are each stored
+as a ledger row; each fires once at its time, also after a restart; a check that is
+missed while Ethan is stopped is reported as missed, not run late without a word;
+`ethan --status` lists what is scheduled; reminders can be cancelled. Tests use a fake
+clock.
+*Progress, 2026-10-04:* done as `ethan/clock.py`, with the `clock` door in
+`config/doors.json`. A build scheduled on the clock is refused by the router.
+
+<a id="eh-062"></a>**EH-062 — Get hold of you: desktop, then phone.** Ethan replied
+only where it was asked. *Done when:* every item goes to the asking conversation; it
+also goes to the phone (Telegram) when the text says urgent, or when you have not typed
+for a set time and it is not quiet hours; every attempt is recorded with its reason; a
+phone failure is told on the desktop. Tests use a fake phone and a fake clock.
+*Progress, 2026-10-04:* done as `ethan/reach.py`; "away" is `reach.away_after_min` and
+quiet hours `reach.quiet_hours` in `config/ethan.json`. The call is split out as EH-070.
+
+<a id="eh-070"></a>**EH-070 — Call you when it is urgent and nothing else reached you.**
+*Decision needed:* which telephony service (a call costs money and needs an account),
+what counts as acknowledged on the desktop or the phone, and how long to wait before
+calling. *Done when:* an urgent item not acknowledged within the set time places a call
+that reads the text; an acknowledgement on any route stops it; every attempt is
+recorded. *Depends on:* EH-062.
+
+<a id="eh-063"></a>**EH-063 — Watch a source through an agent's own connectors.** Claude
+and Codex can already read mail, calendars, chats and tickets through their connectors.
+Ethan should not build its own. *Done when:* a watch names a source, a question ("what
+must I reply to?"), a schedule and a target session; at each run, Ethan relays the
+question with the time of the last run; the agent answers in a fixed format (one item
+per line with a link, why it matters, and a due date if any); Ethan stores each item
+once, even when it is reported again; and nothing is ever sent from the source. It
+covers [EH-028](#eh-028) for mail and the reading half of [EH-044](#eh-044) for tickets.
+Write a design note first. *Depends on:* EH-059, EH-061.
+*Progress, 2026-10-04:* design note [EH-063-watch.md](docs/features/EH-063-watch.md);
+done as `ethan/watch.py` on top of the clock, the relay and the task list.
+
+<a id="eh-064"></a>**EH-064 — Meeting notes and action items from a transcript.**
+*Decision needed:* where transcripts come from (the export a meeting tool already makes;
+Ethan does not record audio), and the consent rule for meetings with other people.
+*Done when:* a transcript handed to Ethan goes to an agent for notes and action items;
+the notes are filed into the right KB under the privacy rules; each action item that is
+yours becomes a task (EH-065) with a link back to the meeting.
+
+<a id="eh-065"></a>**EH-065 — One task list from every source.** Items from watches,
+meetings and your own asks live in different places, or nowhere. *Done when:* a task
+has a title, its source and a link, a due date if any, and a state (open, snoozed,
+done, dropped); "what should I do now?" lists open tasks by due date, with no model
+call; marking a task done does not touch its source; duplicates from the same source are
+merged. Tests use a stub source.
+*Progress, 2026-10-04:* done as `ethan/todo.py`. Tasks are one list for the person, not
+per conversation; the conversation that added one is recorded.
+
+<a id="eh-066"></a>**EH-066 — Ethan's own identity, everywhere it acts.** Ethan is
+registered in the message bridge as its own app (EH-058). Elsewhere it acts as whoever
+started it. *Decision needed:* which accounts Ethan may use, and how a message from
+Ethan is marked as Ethan's. *Done when:* every outgoing relay, hand launch and
+notification carries Ethan's identity and the door it came through; no code path sends
+as a person or as another agent; a test checks each path.
+*Progress, 2026-10-04:* Ethan sends through the bridge as the app `ethan`, never as a
+Claude or Codex session; every relay text ends with "Passed on by Ethan from the <door>
+door"; the phone message starts with "Ethan:". Still open: the decision on accounts.
+
+<a id="eh-067"></a>**EH-067 — Guardrails as one written policy.** The rules are spread
+over `doors.json`, the harvest checks and the harness policy. *Decision needed:* the
+shape of one policy file: per source and per action, allow, ask, or never. *Done when:*
+anything that leaves the laptop in your name waits for a yes ([EH-040](#eh-040)); the
+policy is read in one place; a test tries each "never" and each "ask" and checks that it
+is refused or held.
+*Progress, 2026-10-04:* the rules live in `config/doors.json` (classes and `relay` per
+door; the `clock` door files nowhere) and in the router (the clock may not start a
+hand; relays are review-only unless asked). `tests/test_evals.py` holds the "never"
+cases. Still open: one policy file, and the approval step of EH-040.
+
+<a id="eh-068"></a>**EH-068 — Evals for the assistant's behaviour.** Unit tests check
+code paths, not whether the assistant behaves well. *Done when:* a scenario suite, with
+stub sources, stub agents and a fake clock, scores reminders on time, no item nagged
+twice, no important item missed, and nothing sent without a yes; it runs in CI; a
+change that lowers a score fails. Each feature above adds its own scenarios.
+*Progress, 2026-10-04:* `tests/test_evals.py` — four promises, nine scenarios, run with
+the suite in CI: reminders within one tick; one line per change and one task per item;
+every reported item kept or shown as unreadable; the clock and Telegram cannot start or
+hand off work, watches are review-only, the phone only when urgent or away.
+
+<a id="eh-069"></a>**EH-069 — Research asks, answered with sources.** "Find out what
+changed in X" goes to a router question today, which answers only from a KB. *Done
+when:* a research ask goes to a session that can browse; the answer lists its sources
+with links; Ethan offers to file it into a KB through the normal close-out. *Depends
+on:* EH-059.
+
 ### 0.1.0 — correctness
 
 | ID | Feature | Area | P | Size | Status | Owner |
@@ -69,7 +229,7 @@ accepted.
 | EH-020 | [The ledger records door, route and reason for every ask](#eh-020) | ledger | P1 | M | Ready | |
 | EH-021 | [Cost and usage per task](#eh-021) | ledger | P1 | S | Ready | |
 | EH-022 | [`ethan --dry-run`](#eh-022) | cli | P1 | M | Ready | |
-| EH-023 | [Answer "status" asks from the ledger](#eh-023) — *good first issue* | router | P1 | S | Ready | |
+| EH-023 | [Answer "status" asks from the ledger](#eh-023) — *good first issue* | router | P1 | S | In review | Claude (ethan), 2026-10-04 |
 | EH-024 | [Tests for the secret patterns](#eh-024) — *good first issue* | trust | P1 | S | Ready | |
 | EH-025 | [Tests for routing and the harvest policy](#eh-025) | trust | P1 | M | Ready | |
 | EH-026 | [Config holds only what the code reads](#eh-026) — *good first issue* | config | P2 | S | Ready | |
@@ -102,7 +262,7 @@ accepted.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-050 | [`pip install` and an `ethan` command](#eh-050) | distribution | P1 | S | Ready | |
+| EH-050 | [`pip install` and an `ethan` command](#eh-050) | distribution | P1 | S | In review | Claude (ethan), 2026-10-04 |
 | EH-051 | [CI on macOS and Windows](#eh-051) | distribution | P2 | M | In progress | @arupmmi07, 2026-10-03 |
 | EH-052 | [A recorded demo in the README](#eh-052) | docs | P1 | S | Ready | |
 | EH-053 | [A webhook door](#eh-053) | doors | P2 | M | Proposed | |
@@ -228,6 +388,8 @@ absolute home-directory path.
 yet. *Decision needed:* which sources, and through which credential. *Done when:* an
 `updates` ask lists recent items from one configured source, with no model call beyond
 routing, checked with a stub source.
+*Direction, 2026-10-04:* mail is read by an agent through its own connector, not by
+Ethan; see [EH-063](#eh-063).
 
 <a id="eh-020"></a>**EH-020 — The ledger records door, route and reason for every
 ask.** The README says the ledger keeps every task, door, route decision and outcome.
@@ -257,6 +419,8 @@ it needs (`store.pending`, `store.recent_tasks`). *Done when:* "what is running?
 the running tasks and the last five finished ones from the ledger, with no model call
 beyond routing, checked with a stub model. `updates` (mail and notifications) stays out
 of scope. *Starts in:* `ethan/router.py`, the `status` branch of `handle`.
+*Progress, 2026-10-04:* done as `ethan/status.py`, shared by the router, the console's
+`status` shortcut and `ethan --status`; it also lists unanswered relays (EH-059).
 
 <a id="eh-024"></a>**EH-024 — Tests for the secret patterns.** `ethan/redact.py` holds
 the twelve patterns that gate every KB write, and no test covers them. *Done when:* each
@@ -359,6 +523,9 @@ page and `bin/ethan` send it; a call without it gets 401. *Depends on:* EH-005.
 <a id="eh-043"></a>**EH-043 — Recurring asks.** There is no scheduler, by design — Ethan
 does not act without a door. *Decision needed:* whether it ever should, and what it may
 do then (read-only asks only, for example).
+*Direction, 2026-10-04:* the [vision](docs/vision.md) says yes, but the clock may only
+remind and read. [EH-061](#eh-061) is the first step. What a recurring ask may do beyond
+that is still the open decision.
 
 <a id="eh-044"></a>**EH-044 — Pick up work assigned to you.** A ticket assigned to you is
 picked up by your agent, which does the work and then stops and waits for you. The
@@ -371,6 +538,9 @@ packaging file, and `bin/ethan` is run by its path. The ledger and run logs sit 
 the checkout. *Done when:* `pip install .` gives an `ethan` command and a way to start
 the service; state lives in a user data folder unless configured; CI installs the
 package and runs the suite against it.
+*Progress, 2026-10-04:* `pyproject.toml`, `ethan/cli.py` (the command; `bin/ethan` is
+the same command from a checkout), `ethan/defaults/` seeds a user config folder. CI
+installs and runs `ethan --help` and `ethan-service --selftest`.
 
 <a id="eh-051"></a>**EH-051 — CI on macOS and Windows.** CI runs on Ubuntu only, and
 stopping a hung build uses a Unix process-group kill. *Done when:* the suite passes on

@@ -43,6 +43,19 @@ in place of `mcp_url`, `tenant_code` and `pat_env`. See `demo/kb-map.json`.
 
 ## 3. Run
 
+Either from the checkout, or installed:
+
+```bash
+pip install .
+ethan-service            # the service; `ethan` is the command
+```
+
+Installed, Ethan keeps its config in your config folder (`%APPDATA%\ethan` on Windows,
+`~/.config/ethan` elsewhere; seeded from the shipped defaults on first start, and
+`ETHAN_CONFIG_DIR` moves it) and its ledger in your data folder (`%LOCALAPPDATA%\ethan`
+or `~/.local/share/ethan`; `ETHAN_STATE_DIR` moves it). Put `.env` in the config folder.
+From a checkout:
+
 ```bash
 ./run.sh
 ```
@@ -62,11 +75,57 @@ Ethan routes it to a knowledge base, calls `sky build` with a role, and reports 
 when the run ends. It does not stream the run — mid-session input is deliberately
 closed until there is a real boundary for it.
 
+## 5. Hand an ask to a session that is already open
+
+Set `ETHAN_BRIDGE_DIR` in `.env` to a checkout of the local message bridge
+(`agent-bridge`). Then, from the console or the command line:
+
+```bash
+bin/ethan "ask the codex session codex-ethan to review the open merge request"
+```
+
+Ethan passes the ask on, reports the bridge's message id, and follows it until the
+session answers. Without `ETHAN_BRIDGE_DIR`, Ethan says it cannot reach a running
+session and sends nothing. See [Routing](routing.md#passing-an-ask-to-a-running-session).
+
+## 6. Set a reminder
+
+```bash
+bin/ethan --chat me "remind me at 15:00 to send the report"
+bin/ethan --chat me "every weekday at 09:00, what is running?"
+```
+
+The reminder lands in that conversation at the time. A scheduled ask may only read:
+a status ask, a question or a review-only relay. `bin/ethan --status` lists what is
+scheduled. See [Routing](routing.md#reminders-and-checks-on-ethans-own-clock).
+
+## 7. Keep one task list
+
+```bash
+bin/ethan --chat me "add task: send the report by friday"
+bin/ethan --chat me "what should I do now?"
+bin/ethan --chat me "done #1"
+```
+
+Tasks from reminders, meetings and watches land in the same list. See
+[Routing](routing.md#one-task-list).
+
+## 8. Watch a source
+
+```bash
+bin/ethan --chat me "watch mail through the claude session ethan every weekday at 09:00: what must I reply to?"
+```
+
+Every weekday at 09:00 Ethan asks that session (review-only) and turns each item it
+reports into a task. The session reads your mail through its own connector; Ethan
+never holds the credential. See [Routing](routing.md#watching-a-source-through-a-session).
+
 ## What it will not do
 
 - Push, merge, or comment on a ticket. Outward actions belong to the harness's broker
   and to you.
-- Act without a door. There is no scheduler and no unattended mode.
+- Act on its own, with one exception: the reminders and read-only checks you set on
+  its clock. It never starts a hand unattended.
 - File a result into a KB whose privacy class the door does not list in
   `config/doors.json`. As shipped, Telegram may file only into `personal` KBs; the
   console and the `ethan` command (the `cli` door) may file into any class.

@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Copy to config/kb-map.json and fill in your own values.",
+    "kb-map.json is gitignored on purpose: it names real tenants, real",
+    "hosts and real local paths, and this repo is meant to have a shared remote.",
+    "Each KB needs a pat_env naming an environment variable in .env —",
+    "never put the token itself in this file."
+  ],
+  "example_kb": {
+    "purpose": "One sentence the router matches task intent against. Be specific: this text is the routing signal.",
+    "mcp_url": "https://<your-kb-host>/mcp/",
+    "tenant_code": "XXXXXXXX",
+    "ontology": "<ontology name on that host>",
+    "privacy": "work",
+    "write": true,
+    "pat_env": "KB_EXAMPLE_PAT",
+    "hints": ["keyword", "project-prefix"],
+    "repos": ["~/path/to/a/repo"]
+  },
+  "local_kb": {
+    "purpose": "A second KB, e.g. a local KB stack for notes that must not leave the laptop.",
+    "mcp_url": "http://localhost:8000/mcp/",
+    "tenant_code": "YYYYYYYY",
+    "ontology": "<ontology name>",
+    "privacy": "personal",
+    "write": true,
+    "pat_env": "KB_LOCAL_PAT",
+    "hints": ["notes"],
+    "repo": "~/path/to/notes"
+  }
+}

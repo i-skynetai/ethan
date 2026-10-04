@@ -8,9 +8,17 @@ python3 -m unittest discover -s tests -t .
 ruff check --select E9,F .
 ```
 
-46 tests, standard library only — the same command CI runs, and CI runs the same ruff
+144 tests, standard library only — the same command CI runs, and CI runs the same ruff
 check (syntax errors, undefined and unused names). All three must pass. The demo
 needs no key; if it stops printing `Session can close`, something on the main path broke.
+
+## The evals
+
+`tests/test_evals.py` runs with the suite. It is not more unit tests: each scenario is a
+short story — a reminder set, a watch answered, a relay pending — and a score that must
+hold (every reminder within one tick, one task per reported item, nothing sent without a
+yes). A feature that changes behaviour adds a scenario there, and a change that lowers a
+score does not merge.
 
 ## Claim a feature before you start
 

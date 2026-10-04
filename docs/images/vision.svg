@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470" font-family="-apple-system, Helvetica, Arial, sans-serif">
+<rect width="960" height="470" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker></defs>
+<text x="30" y="34" font-size="18" font-weight="700" fill="#0f172a">Ethan decides when and who. Claude and Codex do the work.</text>
+
+<g font-size="14">
+  <!-- sources -->
+  <rect x="30" y="70" width="200" height="250" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+  <text x="130" y="98" text-anchor="middle" font-weight="700" fill="#0f172a">Your sources</text>
+  <text x="50" y="130" fill="#334155">Calendar and meetings</text>
+  <text x="50" y="158" fill="#334155">Mail</text>
+  <text x="50" y="186" fill="#334155">Chat</text>
+  <text x="50" y="214" fill="#334155">Tickets and code review</text>
+  <text x="50" y="242" fill="#334155">Docs and wikis</text>
+  <text x="50" y="270" fill="#334155">Knowledge bases</text>
+  <text x="50" y="298" fill="#334155">Video and social</text>
+
+  <!-- ethan -->
+  <rect x="330" y="70" width="280" height="250" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="470" y="98" text-anchor="middle" font-weight="700" fill="#0f172a">Ethan, on your laptop</text>
+  <text x="350" y="132" fill="#0f172a"><tspan font-weight="700">When</tspan><tspan fill="#334155"> · reminders, checks, events</tspan></text>
+  <text x="350" y="168" fill="#0f172a"><tspan font-weight="700">Who</tspan><tspan fill="#334155"> · which session gets it</tspan></text>
+  <text x="350" y="204" fill="#0f172a"><tspan font-weight="700">Rules</tspan><tspan fill="#334155"> · identity, guardrails</tspan></text>
+  <text x="350" y="240" fill="#0f172a"><tspan font-weight="700">Record</tspan><tspan fill="#334155"> · ledger, evals</tspan></text>
+  <text x="350" y="276" fill="#0f172a"><tspan font-weight="700">Reach</tspan><tspan fill="#334155"> · gets hold of you</tspan></text>
+
+  <!-- agents -->
+  <rect x="710" y="70" width="220" height="250" rx="10" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="820" y="98" text-anchor="middle" font-weight="700" fill="#0f172a">Claude and Codex</text>
+  <text x="730" y="132" fill="#334155">read through their</text>
+  <text x="730" y="152" fill="#334155">own connectors</text>
+  <text x="730" y="188" fill="#334155">summarise, take notes</text>
+  <text x="730" y="224" fill="#334155">research, draft</text>
+  <text x="730" y="260" fill="#334155">write code</text>
+
+  <!-- you -->
+  <rect x="330" y="360" width="280" height="56" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="470" y="384" text-anchor="middle" font-weight="700" fill="#0f172a">You</text>
+  <text x="470" y="404" text-anchor="middle" fill="#334155">desktop, then phone, then a call</text>
+</g>
+
+<g stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)">
+  <line x1="232" y1="150" x2="326" y2="150"/>
+  <line x1="612" y1="150" x2="706" y2="150"/>
+  <line x1="706" y1="250" x2="614" y2="250"/>
+  <line x1="470" y1="322" x2="470" y2="356"/>
+</g>
+<g font-size="12" fill="#475569" text-anchor="middle">
+  <text x="279" y="142">events</text>
+  <text x="659" y="142">hand off</text>
+  <text x="659" y="242">results</text>
+</g>
+<path d="M820,322 L820,432 L130,432 L130,326" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#a)"/>
+<text x="475" y="456" font-size="12" fill="#64748b" text-anchor="middle">the agents read your sources directly, through their own connectors</text>
+</svg>

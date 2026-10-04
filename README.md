@@ -87,21 +87,23 @@ secrets before writing. See [Architecture](docs/architecture.md).
 - A privacy wall on by default: Telegram, reachable from a phone, may file only into
   personal KBs; the console and the `ethan` command may file into any.
 - A local console that refuses requests from other web pages and bodies over 64 KB.
-- A SQLite ledger of build and review tasks, their runs and logs, and every close-out
-  write or refusal.
+- A SQLite ledger of tasks, runs, logs and every close-out write or refusal.
+- Asks handed to an open coding session and followed to the answer; reminders, one
+  task list, and watches on your mail or tickets through that session — by rules, with
+  no model call, and nothing sent on your behalf.
 
 ## What it is not
 
 - Not an agent that approves, merges or pushes. It picks and launches; you decide.
 - Not a policy engine. The harness enforces what a run may do; Ethan only chooses.
-- Not finished: status and inbox asks, and a ledger row for every route decision, are
-  open rows in the [roadmap](ROADMAP.md).
+- Not finished: a call when you are away and one policy file are open rows in the
+  [roadmap](ROADMAP.md); the [vision](docs/vision.md) says where it is going.
 
 ## Status
 
-Version 0.1.0. 46 tests, standard library only, run by CI on Python 3.11, 3.12 and 3.13:
-`python3 -m unittest discover -s tests -t .`. The real hand path needs the harness and has
-been tested here only with a fake `sky`. Changes are listed in the [changelog](CHANGELOG.md).
+Version 0.1.0. 144 tests, standard library only, CI on Python 3.11 to 3.13:
+`python3 -m unittest discover -s tests -t .`. The real hand path has been tested only
+with a fake `sky`. Changes: the [changelog](CHANGELOG.md).
 
 ## Links
 
@@ -110,6 +112,7 @@ been tested here only with a fake `sky`. Changes are listed in the [changelog](C
 | [Architecture](docs/architecture.md) | Doors, router, hands, close-out |
 | [Getting started](docs/getting-started.md) | Keys, knowledge bases, first task |
 | [Routing](docs/routing.md) | How a task chooses a knowledge base |
+| [Vision](docs/vision.md) | Where Ethan is going: an assistant that hands the work to Claude and Codex |
 | [Roadmap](ROADMAP.md) | Every planned feature, its status and owner |
 | [Contributing](CONTRIBUTING.md) | Running the checks, claiming work, docs rules |
 

@@ -356,7 +356,8 @@ class OneAnswerForWhereTheKbMapIs(unittest.TestCase):
 
     def test_the_real_map_wins_when_it_is_there(self):
         from ethan import kb
-        real = os.path.join(kb.CONFIG_DIR, "kb-map.json")
+        from ethan.util import config_dir
+        real = os.path.join(config_dir(), "kb-map.json")
         if os.path.isfile(real):
             self.assertEqual(kb.kb_map_path(), real)
         else:

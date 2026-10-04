@@ -172,13 +172,22 @@ def run(hand, work_output, kb_repo, door, chat_id, task_id=None):
 
 
 def can_close(chat_id=None):
-    """Ethan's only close-out judgement: is anything still outstanding?"""
+    """Ethan's only close-out judgement: is anything still outstanding? A relay that
+    the session has not answered is outstanding, even though no hand is running."""
     pend = store.pending(chat_id)
-    if not pend:
+    relays = store.open_relays(chat_id)
+    if not pend and not relays:
         return True, "nothing pending"
-    what = "; ".join(f"#{p['id']} {p['kind']}/{p['hand']}" for p in pend[:5])
-    more = f" (+{len(pend) - 5} more)" if len(pend) > 5 else ""
-    return False, f"{len(pend)} still running: {what}{more}"
+    parts = []
+    if pend:
+        what = "; ".join(f"#{p['id']} {p['kind']}/{p['hand']}" for p in pend[:5])
+        more = f" (+{len(pend) - 5} more)" if len(pend) > 5 else ""
+        parts.append(f"{len(pend)} still running: {what}{more}")
+    if relays:
+        what = "; ".join(f"relay #{r['id']} to {r['target']} is {r['state']}" for r in relays[:5])
+        more = f" (+{len(relays) - 5} more)" if len(relays) > 5 else ""
+        parts.append(f"{len(relays)} not yet answered: {what}{more}")
+    return False, "; ".join(parts)
 
 
 # ── direct document ingest (CLI/console door) ───────────────────────────────

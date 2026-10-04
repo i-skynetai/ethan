@@ -24,6 +24,22 @@ jobs:
       - name: Run the suite
         run: python -m unittest discover -s tests -t . -v
 
+  install:
+    # The package installs with no dependencies and gives the two commands.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: pip install .
+      - name: The commands exist
+        run: |
+          cd /tmp
+          ethan --help
+          ETHAN_STATE_DIR=/tmp/ethan-state ethan-service --selftest
+
   lint:
     # Syntax errors and undefined or unused names only (ruff E9 and F) — the checks
     # that find real bugs, not style. Pinned so a new ruff release cannot fail CI.
