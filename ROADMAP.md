@@ -51,9 +51,9 @@ accepted.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-055 | Conversation-first console and read-only agent-bridge session registry; distinguish registrations from live availability | doors | P1 | M | In review | Codex, 2026-10-04 |
-| EH-056 | Grounded assistant character and activity-driven presence | doors | P1 | S | In review | Codex, 2026-10-04 |
-| EH-057 | Presence-first character scene with conversation and details on demand | doors | P1 | S | In review | Codex, 2026-10-04 |
+| EH-055 | Conversation-first console and read-only agent-bridge session registry; distinguish registrations from live availability | doors | P1 | M | Done — 0.2.0 | Codex, 2026-10-04 |
+| EH-056 | Grounded assistant character and activity-driven presence | doors | P1 | S | Done — 0.2.0 | Codex, 2026-10-04 |
+| EH-057 | Presence-first character scene with conversation and details on demand | doors | P1 | S | Done — 0.2.0 | Codex, 2026-10-04 |
 
 EH-055 acceptance: show registered Claude and Codex sessions when a local bridge database is configured; never label stale registration status as live; missing bridge is explained; conversation runs oldest-first with the user's messages preserved; historical runs and logs remain available as details. Reading the registry sends no messages and creates no sessions. Bridge task dispatch and local-folder Harness compatibility remain separate integration work.
 
@@ -66,8 +66,8 @@ with `sky build`.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-058 | [Relay an ask to a running session](#eh-058) | router | P1 | M | In review | Claude (ethan), 2026-10-04 |
-| EH-059 | [Follow a relay to its end, across restarts](#eh-059) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-058 | [Relay an ask to a running session](#eh-058) | router | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
+| EH-059 | [Follow a relay to its end, across restarts](#eh-059) | loop | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-060 | [A local folder KB works with `sky build`](#eh-060) | kb | P1 | S | Proposed | |
 
 <a id="eh-058"></a>**EH-058 — Relay an ask to a running session.** "Ask the running
@@ -104,15 +104,15 @@ claims it, which is why they are Proposed or Needs decision.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-061 | [Reminders and recurring checks on Ethan's own clock](#eh-061) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
-| EH-062 | [Get hold of you: desktop, then phone](#eh-062) | doors | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-061 | [Reminders and recurring checks on Ethan's own clock](#eh-061) | loop | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
+| EH-062 | [Get hold of you: desktop, then phone](#eh-062) | doors | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-070 | [Call you when it is urgent and nothing else reached you](#eh-070) | doors | P2 | M | Needs decision | |
-| EH-063 | [Watch a source through an agent's own connectors](#eh-063) | sources | P1 | L | In review | Claude (ethan), 2026-10-04 |
+| EH-063 | [Watch a source through an agent's own connectors](#eh-063) | sources | P1 | L | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-064 | [Meeting notes and action items from a transcript](#eh-064) | sources | P2 | L | Needs decision | |
-| EH-065 | [One task list from every source](#eh-065) | loop | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-065 | [One task list from every source](#eh-065) | loop | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-066 | [Ethan's own identity, everywhere it acts](#eh-066) | trust | P1 | M | Needs decision | |
 | EH-067 | [Guardrails as one written policy](#eh-067) | trust | P1 | M | Needs decision | |
-| EH-068 | [Evals for the assistant's behaviour](#eh-068) | trust | P1 | M | In review | Claude (ethan), 2026-10-04 |
+| EH-068 | [Evals for the assistant's behaviour](#eh-068) | trust | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-069 | [Research asks, answered with sources](#eh-069) | router | P2 | M | Proposed | |
 
 <a id="eh-061"></a>**EH-061 — Reminders and recurring checks on Ethan's own clock.**
@@ -229,7 +229,7 @@ on:* EH-059.
 | EH-020 | [The ledger records door, route and reason for every ask](#eh-020) | ledger | P1 | M | Ready | |
 | EH-021 | [Cost and usage per task](#eh-021) | ledger | P1 | S | Ready | |
 | EH-022 | [`ethan --dry-run`](#eh-022) | cli | P1 | M | Ready | |
-| EH-023 | [Answer "status" asks from the ledger](#eh-023) — *good first issue* | router | P1 | S | In review | Claude (ethan), 2026-10-04 |
+| EH-023 | [Answer "status" asks from the ledger](#eh-023) — *good first issue* | router | P1 | S | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-024 | [Tests for the secret patterns](#eh-024) — *good first issue* | trust | P1 | S | Ready | |
 | EH-025 | [Tests for routing and the harvest policy](#eh-025) | trust | P1 | M | Ready | |
 | EH-026 | [Config holds only what the code reads](#eh-026) — *good first issue* | config | P2 | S | Ready | |
@@ -262,7 +262,7 @@ on:* EH-059.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-050 | [`pip install` and an `ethan` command](#eh-050) | distribution | P1 | S | In review | Claude (ethan), 2026-10-04 |
+| EH-050 | [`pip install` and an `ethan` command](#eh-050) | distribution | P1 | S | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-051 | [CI on macOS and Windows](#eh-051) | distribution | P2 | M | In progress | @arupmmi07, 2026-10-03 |
 | EH-052 | [A recorded demo in the README](#eh-052) | docs | P1 | S | Ready | |
 | EH-053 | [A webhook door](#eh-053) | doors | P2 | M | Proposed | |

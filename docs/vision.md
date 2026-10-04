@@ -6,6 +6,13 @@ of what works today. Everything here that is not built yet is a row in the
 
 ![Ethan decides when and who; Claude and Codex do the work; you are reached on the desktop, then the phone, then by a call](images/vision.png)
 
+## Why
+
+Most people with Claude or Codex use them one chat at a time, and the operating around
+the tools is where the value leaks. Ethan is a free, local operating layer for one person
+first, and a provider-neutral, accountable way for a team to make everyday AI use
+effective after that. It never does the work itself.
+
 ## The assistant
 
 Ethan is meant to be an assistant that sits quietly on your laptop and helps with any

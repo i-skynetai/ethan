@@ -3,7 +3,7 @@
 Every release, newest first. Versions follow [semantic versioning](https://semver.org).
 IDs refer to rows in the [roadmap](ROADMAP.md).
 
-## Unreleased
+## 0.2.0 — 2026-10-04
 
 ### Added
 
