@@ -131,8 +131,9 @@ def _parse_due(text, now=None):
             h += 12
         if ap == "am" and h == 12:
             h = 0
-        if 0 <= h < 24 and 0 <= mi < 60 and (t.group(2) or ap or h <= 23):
-            hm = (h, mi)
+        if not (0 <= h < 24 and 0 <= mi < 60):
+            return None                           # a time was written and it does not exist: no guess
+        hm = (h, mi)
     if day is None and hm is None:
         return None
     if day is None:

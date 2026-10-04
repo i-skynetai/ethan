@@ -45,7 +45,9 @@ class ReadingADate(unittest.TestCase):
     def test_a_date_that_does_not_exist_is_unreadable_not_an_error(self):
         self.assertIsNone(todo.parse_due("2026-02-30", NOW))
         self.assertIsNone(todo.parse_due("2026-13-01", NOW))
-        self.assertIsNone(todo.parse_due("9999-12-31 25:00", NOW))
+        self.assertIsNone(todo.parse_due("2026-10-10 25:00", NOW))      # a time that does not exist
+        self.assertIsNone(todo.parse_due("friday 17:60", NOW))
+        self.assertIsNone(todo.parse_due("tomorrow 24:00", NOW))
 
 
 class TheList(unittest.TestCase):
