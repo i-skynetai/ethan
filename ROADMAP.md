@@ -110,8 +110,8 @@ claims it, which is why they are Proposed or Needs decision.
 | EH-063 | [Watch a source through an agent's own connectors](#eh-063) | sources | P1 | L | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-064 | [Meeting notes and action items from a transcript](#eh-064) | sources | P2 | L | Needs decision | |
 | EH-065 | [One task list from every source](#eh-065) | loop | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
-| EH-066 | [Ethan's own identity, everywhere it acts](#eh-066) | trust | P1 | M | Needs decision | |
-| EH-067 | [Guardrails as one written policy](#eh-067) | trust | P1 | M | Needs decision | |
+| EH-066 | [Ethan's own identity, everywhere it acts](#eh-066) | trust | P1 | M | In review | Claude (ethan), 2026-10-05 |
+| EH-067 | [Guardrails as one written policy](#eh-067) | trust | P1 | M | In review | Claude (ethan), 2026-10-05 |
 | EH-068 | [Evals for the assistant's behaviour](#eh-068) | trust | P1 | M | Done — 0.2.0 | Claude (ethan), 2026-10-04 |
 | EH-069 | [Research asks, answered with sources](#eh-069) | router | P2 | M | Proposed | |
 
@@ -179,6 +179,10 @@ as a person or as another agent; a test checks each path.
 *Progress, 2026-10-04:* Ethan sends through the bridge as the app `ethan`, never as a
 Claude or Codex session; every relay text ends with "Passed on by Ethan from the <door>
 door"; the phone message starts with "Ethan:". Still open: the decision on accounts.
+*Decided, 2026-10-05:* Ethan uses only its own accounts (bridge app, harness agent id,
+Telegram bot), never a person's. `ethan/identity.py` holds name, owner (written, never
+guessed) and agent id; the brief to a hand, the relay text, the phone line and
+`SKY_AGENT_ID` all carry it. Tests: `tests/test_identity.py`.
 
 <a id="eh-067"></a>**EH-067 — Guardrails as one written policy.** The rules are spread
 over `doors.json`, the harvest checks and the harness policy. *Decision needed:* the
@@ -190,6 +194,11 @@ is refused or held.
 door; the `clock` door files nowhere) and in the router (the clock may not start a
 hand; relays are review-only unless asked). `tests/test_evals.py` holds the "never"
 cases. Still open: one policy file, and the approval step of EH-040.
+*Decided, 2026-10-05:* `config/policy.json` — `doors` (classes, relay, build) and
+`actions` (allow / ask / never) — read only by `ethan/policy.py`; `doors.json` is folded
+in, and an older config folder is read through the same module. Shipped: implementation
+relays are *ask*; sending in your name, push or merge, and starting or resuming a session
+are *never*. The approval step itself remains EH-040. Tests: `tests/test_policy.py`.
 
 <a id="eh-068"></a>**EH-068 — Evals for the assistant's behaviour.** Unit tests check
 code paths, not whether the assistant behaves well. *Done when:* a scenario suite, with

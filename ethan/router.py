@@ -1,6 +1,6 @@
 """The router — hint first, model only when the hint cannot decide; pick kb, pull context, brief, delegate, report."""
 import re
-from . import kb, brief, clock, hands, harvest, llm, relay, status, store, todo, watch
+from . import kb, brief, clock, hands, harvest, identity, llm, policy, relay, status, store, todo, watch
 from .util import log
 from .character import VOICE
 
@@ -162,10 +162,11 @@ def _handle(chat_id, text, reply, door, cwd):
     log(f"route: {route}")
 
     kind = route["kind"]
-    if door == clock.DOOR and kind in ("build", "review", "chain"):
-        # The clock may remind and read. Starting a hand needs a person at a door.
-        reply(f"Not started: this was scheduled, and the clock may only remind and read, "
-              f"not start a {kind}. Ask for it yourself when you want it run.")
+    if kind in ("build", "review", "chain") and not policy.may_build(door):
+        # Starting a hand needs a person at a door the policy trusts with it. The clock
+        # may remind and read; it may not build.
+        reply(f"Not started: the {door} door may only remind and read, not start a {kind}. "
+              f"Ask for it yourself from the console or the command line when you want it run.")
         return
     choices = hinted if len(hinted) > 1 else list(bmap)
     kb_name = route["kb"] if route["kb"] in choices else None
@@ -231,7 +232,7 @@ def _handle(chat_id, text, reply, door, cwd):
             short = goal.split(".")[0][:150]
             reply(f"Step {i}/{len(route['steps'])} — {h}: {short}…")
             btxt = brief.render(f"{goal}\n\n(Original ask: {text})", hits, workdir,
-                                prior_output=prior)
+                                prior_output=prior, sender=identity.stamp(door))
             step_kind = step.get("kind") or "review"   # unknown → the role that cannot edit
             res = hands.run(h, btxt, workdir, review=(step_kind == "review"),
                             task_id=task_id, kb=kb_name, kind=step_kind)
@@ -252,7 +253,7 @@ def _handle(chat_id, text, reply, door, cwd):
     hand = route["hand"] if route["hand"] not in ("auto", "none") else ("codex" if kind == "review" else "claude")
     task_id = store.add_task(chat_id, kind, kb_name, hand, text, door)
     reply(f"Task #{task_id}: delegating to {hand} in {workdir or '(no repo)'} — I'll report back.")
-    btxt = brief.render(text, hits, workdir)
+    btxt = brief.render(text, hits, workdir, sender=identity.stamp(door))
     res = hands.run(hand, btxt, workdir, review=(kind == "review"), task_id=task_id,
                     kb=kb_name, kind=kind)
     store.finish_task(task_id, "done" if res["ok"] else "failed", res["out"])

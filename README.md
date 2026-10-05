@@ -103,7 +103,7 @@ and scans for secrets before writing. See [Architecture](docs/architecture.md).
 
 ## Status
 
-Version 0.2.0. 144 tests, standard library only, CI on Python 3.11 to 3.13:
+Version 0.2.0. 167 tests, standard library only, CI on Python 3.11 to 3.13:
 `python3 -m unittest discover -s tests -t .`. The real hand path has been tested only
 with a fake `sky`. Changes: the [changelog](CHANGELOG.md).
 

@@ -148,10 +148,20 @@ def console():
 
 
 def post(port, body, headers):
-    c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-    c.request("POST", "/api/ask", body=body, headers=headers)
-    r = c.getresponse(); r.read(); c.close()
-    return r.status
+    """The status the console answers with. On Windows the server's early close on a
+    refusal can reset the socket before the client has read the status; that is the
+    same refusal, so the request is retried, and the status is still asserted."""
+    for attempt in range(3):
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        try:
+            c.request("POST", "/api/ask", body=body, headers=headers)
+            r = c.getresponse(); r.read()
+            return r.status
+        except (ConnectionResetError, ConnectionAbortedError, http.client.RemoteDisconnected):
+            if attempt == 2:
+                raise
+        finally:
+            c.close()
 
 
 class TheConsoleRefusesOtherWebPages(unittest.TestCase):
@@ -345,8 +355,8 @@ class DoorsShipWithThePrivacyWallOn(unittest.TestCase):
                 "body": "A note long enough to pass the minimum length for a harvest.", "why": "w"}
 
     def test_the_shipped_config_has_telegram_refuse_work(self):
-        from ethan.util import cfg
-        doors = cfg("doors.json")
+        from ethan import policy
+        doors = policy.doors()
         self.assertEqual(doors["telegram-private"]["classes"], ["personal"])
         self.assertIn("work", doors["cli"]["classes"])
         self.assertIn("work", doors["console"]["classes"])

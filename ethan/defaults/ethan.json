@@ -2,6 +2,12 @@
   "hand_timeout_sec": 1800,
   "poll_timeout_sec": 50,
   "relay_poll_sec": 30,
+  "identity": {
+    "_comment": "Who Ethan is when it acts. It uses only its own accounts: the bridge app, the harness agent id, the Telegram bot. owner is written here or in ETHAN_OWNER, never guessed. agent_id is what the harness records for Ethan's launches.",
+    "name": "Ethan",
+    "owner": null,
+    "agent_id": "ethan"
+  },
   "reach": {
     "_comment": "When something also goes to your phone (the Telegram door): always when urgent; otherwise only when you have not typed for away_after_min and it is not quiet hours.",
     "away_after_min": 20,

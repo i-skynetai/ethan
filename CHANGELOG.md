@@ -3,6 +3,24 @@
 Every release, newest first. Versions follow [semantic versioning](https://semver.org).
 IDs refer to rows in the [roadmap](ROADMAP.md).
 
+## Unreleased
+
+### Added
+
+- EH-067: one policy file. `config/policy.json` holds what each door may do (classes,
+  relay, build) and which actions are allowed, need the person's word in the ask, or
+  are never done; only `ethan/policy.py` reads it. `config/doors.json` is folded in;
+  an older config folder still works, with a note.
+- EH-066: Ethan's own identity. It acts only through its own accounts; every relay,
+  brief and phone line says "Ethan, for <owner>, via the <door> door"; the harness
+  records its launches under the agent id `ethan`. `identity.owner` or `ETHAN_OWNER`.
+
+### Fixed
+
+- The console refusal tests could fail once in a few runs on Windows, where the
+  server's early close on a 403 or 413 reset the socket before the client read the
+  status. The test helper retries the request; the status is still asserted.
+
 ## 0.2.0 — 2026-10-04
 
 ### Added

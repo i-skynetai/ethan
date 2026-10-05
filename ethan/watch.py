@@ -12,7 +12,7 @@ from the source: the relay is review-only, and the session only reads.
 """
 import re
 import time
-from . import bridge_registry, clock, relay, store, todo
+from . import bridge_registry, clock, policy, relay, store, todo
 from .util import log
 
 #: last_run is the last attempt; last_ok the last run the session actually answered. The
@@ -99,6 +99,9 @@ def take(chat_id, text, reply, door, now=None):
     if not relay.allowed(door):
         reply(f"I do not pass work to coding sessions from the {door} door, so I cannot watch from here.")
         return True
+    if not policy.allowed("watch"):
+        reply(policy.refusal("watch", "I may not watch a source"))
+        return True
     source, target, when, question = (m.group(k).strip() for k in ("source", "target", "when", "question"))
     reg = bridge_registry.sessions()
     pool = relay.targets(target, reg["sessions"]) if reg["available"] else []
@@ -135,6 +138,10 @@ def run(wid, deliver, now=None):
     now = now or time.time()
     w = get(wid)
     if not w or w["state"] != "active":
+        return
+    if not policy.allowed("watch"):               # the policy changed after the watch was set
+        deliver(w["chat_id"], w["door"], f"Watch #{wid} ({w['source']}) did not run: "
+                + policy.refusal("watch", "I may not watch a source"))
         return
     reg = bridge_registry.sessions()
     pool = [s for s in reg["sessions"] if relay._label(s) == w["target"]] if reg["available"] else []

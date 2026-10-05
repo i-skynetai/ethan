@@ -218,7 +218,7 @@ def add_relay(chat_id, door, ask, mode, candidates=None, purpose=None):
         return cur.lastrowid
 
 
-_RELAY_FIELDS = {"state", "target", "target_ref", "bridge_key", "message_id", "note", "result"}
+_RELAY_FIELDS = {"state", "target", "target_ref", "bridge_key", "message_id", "note", "result", "purpose", "mode"}
 
 
 def update_relay(relay_id, **fields):

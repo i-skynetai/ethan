@@ -23,7 +23,7 @@ def _user_dir(kind):
 
 
 def config_dir():
-    """Where `doors.json`, `ethan.json` and the KB map live. `ETHAN_CONFIG_DIR` wins;
+    """Where `policy.json`, `ethan.json` and the KB map live. `ETHAN_CONFIG_DIR` wins;
     a checkout uses its own `config/`; an installed copy uses the user's config folder,
     seeded once from the shipped defaults. A file the person already has is never
     overwritten."""

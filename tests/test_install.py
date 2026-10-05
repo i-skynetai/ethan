@@ -36,7 +36,7 @@ class Packaging(unittest.TestCase):
         self.assertIn("ethan --status", out.stdout)
 
     def test_shipped_defaults_match_the_checkout_config(self):
-        for name in ("doors.json", "ethan.json", "kb-map.example.json"):
+        for name in ("policy.json", "ethan.json", "kb-map.example.json"):
             with open(os.path.join(ROOT, "config", name), encoding="utf-8") as a, \
                     open(os.path.join(ROOT, "ethan", "defaults", name), encoding="utf-8") as b:
                 self.assertEqual(json.load(a), json.load(b), name)
@@ -53,8 +53,8 @@ class WhereThingsLive(unittest.TestCase):
                 mock.patch.dict(os.environ, {"ETHAN_CONFIG_DIR": tmp, "ETHAN_STATE_DIR": tmp}):
             self.assertEqual(util.config_dir(), tmp)
             self.assertEqual(util.state_dir(), tmp)
-            self.assertEqual(util.cfg("doors.json")["console"]["classes"], ["personal", "work", "client"])
-            self.assertTrue(os.path.isfile(os.path.join(tmp, "doors.json")))   # seeded from the defaults
+            self.assertEqual(util.cfg("policy.json")["doors"]["console"]["classes"], ["personal", "work", "client"])
+            self.assertTrue(os.path.isfile(os.path.join(tmp, "policy.json")))  # seeded from the defaults
 
     def test_an_installed_copy_uses_the_user_folders_and_seeds_them(self):
         with tempfile.TemporaryDirectory() as tmp, \
@@ -67,13 +67,13 @@ class WhereThingsLive(unittest.TestCase):
             self.assertTrue(st_dir.startswith(tmp), st_dir)
             self.assertNotEqual(cfg_dir, st_dir)
             self.assertEqual(util.cfg("ethan.json")["relay_poll_sec"], 30)
-            self.assertEqual(sorted(os.listdir(cfg_dir)), ["doors.json", "ethan.json", "kb-map.example.json"])
+            self.assertEqual(sorted(os.listdir(cfg_dir)), ["ethan.json", "kb-map.example.json", "policy.json"])
 
     def test_seeding_never_overwrites_a_users_file(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"ETHAN_CONFIG_DIR": tmp}):
-            with open(os.path.join(tmp, "doors.json"), "w", encoding="utf-8") as f:
-                json.dump({"console": {"classes": ["personal"]}}, f)
-            self.assertEqual(util.cfg("doors.json"), {"console": {"classes": ["personal"]}})
+            with open(os.path.join(tmp, "policy.json"), "w", encoding="utf-8") as f:
+                json.dump({"doors": {"console": {"classes": ["personal"]}}}, f)
+            self.assertEqual(util.cfg("policy.json"), {"doors": {"console": {"classes": ["personal"]}}})
 
 
 if __name__ == "__main__":

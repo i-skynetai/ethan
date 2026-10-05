@@ -6,7 +6,7 @@ decision against policy, perform the write itself (so a hand never holds a token
 and refuse out loud rather than silently.
 """
 import json, re
-from . import kb, hands, redact, store
+from . import kb, hands, policy, redact, store
 from .util import cfg, log
 
 MAX_BODY = 20000          # a knowledge note, not a transcript dump
@@ -115,12 +115,13 @@ def apply(decision, door, chat_id, hand):
         return "refused", f"kb '{name}' is read-only by policy"
 
     # Fail CLOSED. An unknown door must never fall through to "no restrictions",
-    # and a door with no classes declared grants nothing.
-    doors = cfg("doors.json")
-    if door not in doors:
+    # and a door with no classes declared grants nothing. The rules are policy.py's.
+    if not policy.allowed("file_to_kb"):
+        return "refused", policy.refusal("file_to_kb", "nothing is filed to a knowledge base")
+    if policy.door(door) is None:
         return "refused", f"unknown door '{door}' — refusing to write anywhere"
-    allowed = doors[door].get("classes") or []
-    if b.get("privacy") not in allowed:
+    ok, allowed = policy.may_file(door, b.get("privacy"))
+    if not ok:
         return "refused", (f"kb '{name}' is class '{b.get('privacy')}', which the "
                            f"'{door}' door may not write to (allows: "
                            f"{', '.join(allowed) or 'nothing'})")
@@ -256,10 +257,11 @@ def ingest_document(path, doc_type, door, chat_id, cwd=None):
     b = bmap[kb_name]
     if not b.get("write"):
         return "refused", f"kb '{kb_name}' is read-only by policy"
-    doors = cfg("doors.json")
-    if door not in doors:
+    if not policy.allowed("file_to_kb"):
+        return "refused", policy.refusal("file_to_kb", "nothing is filed to a knowledge base")
+    if policy.door(door) is None:
         return "refused", f"unknown door '{door}' — refusing to write anywhere"
-    if b.get("privacy") not in (doors[door].get("classes") or []):
+    if not policy.may_file(door, b.get("privacy"))[0]:
         return "refused", (f"kb '{kb_name}' is class '{b.get('privacy')}', which "
                            f"the '{door}' door may not write to")
 

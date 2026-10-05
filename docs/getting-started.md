@@ -127,5 +127,5 @@ never holds the credential. See [Routing](routing.md#watching-a-source-through-a
 - Act on its own, with one exception: the reminders and read-only checks you set on
   its clock. It never starts a hand unattended.
 - File a result into a KB whose privacy class the door does not list in
-  `config/doors.json`. As shipped, Telegram may file only into `personal` KBs; the
+  `config/policy.json`. As shipped, Telegram may file only into `personal` KBs; the
   console and the `ethan` command (the `cli` door) may file into any class.

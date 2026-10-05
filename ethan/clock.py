@@ -19,7 +19,7 @@ What it understands, on purpose a short list:
 import datetime as dt
 import re
 import time
-from . import store
+from . import policy, store
 from .util import log
 
 DOOR = "clock"
@@ -191,6 +191,9 @@ def take(chat_id, text, reply, door, now=None):
     if not (_REMIND.match(text) or (_EVERY.search(text) and (_AT.search(text) or "hour" in text.lower()))
             or (_AT.match(text.strip()) and "," in text)):
         return False
+    if not policy.allowed("remind"):
+        reply(policy.refusal("remind", "I may not set reminders or scheduled asks"))
+        return True
     got = parse(text, now)
     if isinstance(got, str):
         reply(got)
@@ -221,6 +224,9 @@ def tick(now=None, deliver=_deliver, run=_run_ask):
     recurring one moves on to its next time."""
     now = now or time.time()
     out = []
+    if not policy.allowed("remind"):              # the policy changed after rows were set: hold them
+        _note_tick(now)
+        return out
     for r in _rows("state='scheduled' AND due<=?", (now,)):
         late = now - r["due"]
         if late > GRACE_SEC:

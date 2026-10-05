@@ -11,8 +11,8 @@ Already-done sessions are skipped via a ledger, so re-running is safe.
 import argparse, json, os, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from ethan.util import load_env, ROOT, cfg          # noqa: E402
-from ethan import kb, hands, redact, sessions        # noqa: E402
+from ethan.util import load_env, ROOT          # noqa: E402
+from ethan import kb, hands, policy, redact, sessions  # noqa: E402
 
 LEDGER = os.path.join(ROOT, "state", "backfill.json")
 DOOR = "backfill"
@@ -39,8 +39,7 @@ def save(led):
 def plan():
     """Every top-level session, with its destination KB (or why not)."""
     bmap = kb.kb_map()
-    doors = cfg("doors.json")
-    allowed = set((doors.get(DOOR) or {}).get("classes") or [])
+    allowed = set((policy.door(DOOR) or {}).get("classes") or [])
     rows = []
     for proj in sessions.all_projects():
         for path in sessions.sessions_for(proj):
@@ -122,8 +121,7 @@ def main():
     print(f"ingesting {len(todo)} session card(s) with hand={a.hand}\n")
     ok = fail = 0
     bmap = kb.kb_map()
-    doors = cfg("doors.json")
-    allowed = set((doors.get(DOOR) or {}).get("classes") or [])
+    allowed = set((policy.door(DOOR) or {}).get("classes") or [])
     moved = 0
     for i, r in enumerate(todo, 1):
         name = os.path.basename(r["path"])[:8]

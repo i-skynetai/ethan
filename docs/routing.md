@@ -72,7 +72,7 @@ new session.
 - **Honest state.** The reply gives the bridge's message id and what its state
   means: *queued* has not been read, *delivered* is not done. Each relay is a row in
   the ledger.
-- **Doors.** Only doors with `"relay": true` in `config/doors.json` may relay. As
+- **Doors.** Only doors with `"relay": true` in `config/policy.json` may relay. As
   shipped, that is the console and the CLI. Telegram is not, because it is reachable
   from a phone.
 
@@ -134,10 +134,34 @@ attempt is recorded: sent, skipped and why, failed and why. Without a Telegram t
 and your user id, Ethan says the phone is not configured and uses the desktop alone. A
 call is not built; see [EH-070](../ROADMAP.md#eh-070).
 
+## One policy file
+
+Every rule about what Ethan may do is in `config/policy.json`, and only `ethan/policy.py`
+reads it. `doors` says what each way in may do: the privacy classes it may file into,
+whether it may relay to a running session, whether it may start a hand. `actions` says
+for each kind of act whether it is allowed when asked, done only when the person says
+so in the ask itself (*ask*), or never done — as shipped, relaying with implementation
+rights is *ask*, and sending in your name, pushing or merging, and starting or resuming
+a session are *never*. An unknown door may do nothing and an unknown action is never.
+Each action is enforced where it takes effect — a reminder in the clock, a status in the
+ledger reader, a relay in the relay, a watch in the watch, the phone in reach, filing in
+the close-out — and for every act but `relay_implementation`, *allow* and *ask* mean the
+same. The last three are promises Ethan keeps by having no code path for them.
+`tests/test_policy.py` tries every *never* and every *ask*, and checks the promises.
+
+## Who Ethan is when it acts
+
+Ethan acts as itself. It uses only its own accounts — the bridge app `ethan`, the
+harness agent id `ethan`, its Telegram bot — never yours and never another agent's.
+Everything it passes on says so: a relay ends with "Passed on by Ethan, for <owner>, via
+the console door", a brief to a hand opens with the same line under *From*, and a phone
+message starts with "Ethan:". The owner is `identity.owner` in `config/ethan.json` or
+`ETHAN_OWNER`; it is written, never guessed from the machine.
+
 ## Privacy classes
 
 Each knowledge base carries a class — `personal`, `work` or `client` — and each door
-lists the classes it may file into, in `config/doors.json`. As shipped:
+lists the classes it may file into, in `config/policy.json`. As shipped:
 
 | Door | May file into |
 |---|---|

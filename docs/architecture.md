@@ -38,7 +38,7 @@ review by two different agents](images/task-flow.png)
 
 A door is a way in. Telegram, a local console on `:8787`, and the CLI (`bin/ethan`),
 which talks to the console's server but is a door of its own, named `cli`. Each door
-lists the privacy classes it may file into, in `config/doors.json`. As shipped,
+lists the privacy classes it may file into, in `config/policy.json`. As shipped,
 Telegram may file only into `personal` KBs, because it is reachable from a phone; the
 console and the CLI may file into any. Each task row in the ledger records its door.
 

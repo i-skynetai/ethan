@@ -26,7 +26,7 @@ new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`
 """
 import itertools, json, os, shutil, subprocess, sys, threading, time
 from .util import cfg, log, state_dir
-from . import store
+from . import identity, store
 from .kb import kb_map_path          # imported by name: `kb` is a parameter here
 
 #: What `sky build` may inherit from Ethan. Listed, not filtered: a filter has
@@ -126,8 +126,7 @@ def build_env(conf, kb_entry=None):
         env["SKY_POLICY"] = os.path.expanduser(sky["policy"])
     elif os.environ.get("SKY_POLICY"):
         env["SKY_POLICY"] = os.environ["SKY_POLICY"]
-    if sky.get("agent_id"):
-        env["SKY_AGENT_ID"] = sky["agent_id"]
+    env["SKY_AGENT_ID"] = sky.get("agent_id") or identity.sky_agent_id()   # Ethan's own id, never a person's
     if kb_entry:
         pat_env = kb_entry.get("pat_env")
         if pat_env and os.environ.get(pat_env):

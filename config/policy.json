@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Every rule about what Ethan may do, in one file. Read only by ethan/policy.py.",
+    "doors: what each way in may do. classes: the privacy classes it may file into",
+    "(a door not listed, or with no classes, files nowhere). relay: may pass an ask to a",
+    "running coding session. build: may start a hand through sky build.",
+    "actions: allow (done when asked), ask (done only when the person says so in the",
+    "ask itself), never (refused, whoever asks). For every act but relay_implementation,",
+    "allow and ask mean the same. Each is enforced where it takes effect: remind in the",
+    "clock, read_ledger in status, relay_review_only and relay_implementation in relay,",
+    "watch in watch, phone in reach, file_to_kb in harvest. The last three are promises",
+    "Ethan keeps by having no code path for them; tests/test_policy.py checks that stays",
+    "true, and tries every never and every ask."
+  ],
+  "doors": {
+    "telegram-private": { "classes": ["personal"], "relay": false, "build": true },
+    "console": { "classes": ["personal", "work", "client"], "relay": true, "build": true },
+    "cli": { "classes": ["personal", "work", "client"], "relay": true, "build": true },
+    "backfill": { "classes": ["work", "client"], "relay": false, "build": false },
+    "clock": { "classes": [], "relay": true, "build": false }
+  },
+  "actions": {
+    "remind": "allow",
+    "read_ledger": "allow",
+    "relay_review_only": "allow",
+    "relay_implementation": "ask",
+    "watch": "allow",
+    "phone": "allow",
+    "file_to_kb": "allow",
+    "send_in_your_name": "never",
+    "push_or_merge": "never",
+    "start_or_resume_a_session": "never"
+  }
+}

@@ -4,7 +4,7 @@ Read from the ledger, never from a model. The router's `status` kind, the consol
 `status` shortcut and `ethan --status` all come here, so there is one answer.
 """
 import time
-from . import clock, relay, store, todo
+from . import clock, policy, relay, store, todo
 
 
 def _age(ts):
@@ -13,6 +13,8 @@ def _age(ts):
 
 
 def text():
+    if not policy.allowed("read_ledger"):
+        return policy.refusal("read_ledger", "I may not read the ledger back to you")
     if relay.bridge_dir():
         relay.follow()                           # say what is true now, not at the last poll
     running = store.pending()

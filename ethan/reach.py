@@ -11,7 +11,7 @@ Every attempt — sent, skipped and why, failed and why — is a row in the ledg
 import datetime as dt
 import os
 import time
-from . import store
+from . import identity, policy, store
 from .util import cfg, log
 
 COLS = "id,ts,chat_id,route,state,why,text"
@@ -89,6 +89,9 @@ def tell(chat_id, door, text, urgent=None, now=None):
     urgent = is_urgent(text) if urgent is None else urgent
     store.add_reply(chat_id, text)
     _record(chat_id, "conversation", "sent", "always", text)
+    if not policy.allowed("phone"):
+        _record(chat_id, "phone", "skipped", "policy: actions.phone is never", text)
+        return ["conversation"]
     if not phone_configured():
         _record(chat_id, "phone", "skipped", "Telegram is not configured", text)
         return ["conversation"]
@@ -103,7 +106,7 @@ def tell(chat_id, door, text, urgent=None, now=None):
     why = "urgent" if urgent else "you were away"
     try:
         for uid in _phone_ids():
-            door_telegram.send(token, uid, f"Ethan: {text}")
+            door_telegram.send(token, uid, f"{identity.name()}: {text}")
     except Exception as e:
         _record(chat_id, "phone", "failed", f"{type(e).__name__}: {e}", text)
         log(f"reach: phone failed — {e}")

@@ -11,7 +11,7 @@ checkout) and runs its command line as a separate process with no shell, so the 
 of an ask is never parsed by a shell.
 """
 import json, os, re, subprocess, sys, time, uuid
-from . import bridge_registry, store
+from . import bridge_registry, identity, policy, store
 from .util import cfg, log, state_dir
 
 #: The name Ethan registers under in the bridge, as an app that polls for replies.
@@ -81,9 +81,9 @@ def send(ref, text, mode, key):
 
 # ── which ask is a relay, and to whom ──────────────────────────────────────
 def allowed(door):
-    """A door may relay only when doors.json says so. Telegram is reachable from a
+    """A door may relay only when the policy says so. Telegram is reachable from a
     phone, so by default it cannot put work in front of a coding session."""
-    return bool(cfg("doors.json").get(door, {}).get("relay"))
+    return policy.may_relay(door)
 
 
 _TO_AFTER = ("send", "pass", "forward", "hand", "relay")   # "send this TO <session>: …"
@@ -132,7 +132,11 @@ def targets(text, sessions, cwd=None):
 
 
 def _mode(text):
-    return "implementation" if _IMPLEMENT.search(text) else "review-only"
+    """Review-only unless the ask says to implement AND the policy lets an explicit ask
+    do that ("ask"). Under "never", the ask is still relayed, review-only."""
+    if _IMPLEMENT.search(text) and policy.action("relay_implementation") in ("allow", "ask"):
+        return "implementation"
+    return "review-only"
 
 
 def _label(s):
@@ -193,6 +197,9 @@ def _relay(chat_id, text, reply, door, cwd, reg):
         reply(f"I do not pass work to coding sessions from the {door} door. "
               "Ask from the console or the command line.")
         return
+    if not policy.allowed("relay_review_only"):
+        reply(policy.refusal("relay_review_only", "I may not pass asks to coding sessions") + " Nothing was sent.")
+        return
     if not reg["available"]:
         reply(f"I cannot reach a running session: {reg['note']} Nothing was sent, and nothing new was started.")
         return
@@ -213,7 +220,7 @@ def _relay(chat_id, text, reply, door, cwd, reg):
 
 
 def _text_of(row):
-    return f"{row['ask']}\n\n(Passed on by Ethan from the {row['door']} door.)"
+    return f"{row['ask']}\n\n(Passed on by {identity.stamp(row['door'])}.)"
 
 
 def dispatch(chat_id, door, target, text, mode, purpose=None):
@@ -228,12 +235,32 @@ def _send(rid, target, reply):
     reply(_dispatch_row(rid, target))
 
 
+def _gate(row):
+    """The one check every send goes through, whatever path led here — a fresh ask,
+    an answer to "which session?", a watch at its time, a recovery after a restart.
+    It reads the door and the policy as they are NOW, not as they were when the ask was
+    made. Returns why the send is refused, or None; may lower the mode."""
+    if not policy.may_relay(row["door"]):
+        return f"the {row['door']} door may not pass work to coding sessions"
+    if not policy.allowed("relay_review_only"):
+        return policy.refusal("relay_review_only", "I may not pass asks to coding sessions")
+    if row["mode"] == "implementation" and policy.action("relay_implementation") == "never":
+        store.update_relay(row["id"], mode="review-only",
+                           note="implementation is never in the policy; sent review-only")
+        row["mode"] = "review-only"
+    return None
+
+
 def _dispatch_row(rid, target):
     """The intent, the target and the dedupe key are saved BEFORE the bridge is called.
     A crash between the send and saving the message id leaves the row at `sending`, and
     `follow` recovers it by sending the same key again: the bridge refuses the duplicate
     and names the message it already has."""
     row = store.relay(rid)
+    why = _gate(row)
+    if why:
+        store.update_relay(rid, state="refused", target=_label(target), note=why)
+        return f"Not sent to {_label(target)}: {why}. Nothing new was started."
     key = f"relay-{rid}-{uuid.uuid4().hex[:8]}"
     store.update_relay(rid, state="sending", target=_label(target), target_ref=ref_of(target), bridge_key=key)
     try:
@@ -280,7 +307,7 @@ def follow(deliver=deliver_reply, recover=False):
             if r["state"] == "sending":
                 if not recover:
                     continue
-                r = _recover(r)
+                r = _recover(r, deliver)
                 if r is None:
                     continue
                 touched = True
@@ -300,7 +327,12 @@ def follow(deliver=deliver_reply, recover=False):
     return changed
 
 
-def _recover(r):
+def _recover(r, deliver=deliver_reply):
+    why = _gate(r)
+    if why:                                       # the rules changed while Ethan was down
+        store.update_relay(r["id"], state="refused", note=f"after a restart: {why}")
+        deliver(r["chat_id"], r["door"], f"Relay #{r['id']} was not sent after the restart: {why}.")
+        return None
     try:
         msg = send(r["target_ref"], _text_of(r), r["mode"], r["bridge_key"])
     except RelayError as e:
@@ -357,8 +389,11 @@ def _update_text(r, state, result):
 
 
 def _drain_inbox():
-    for m in _bridge("inbox", f"app:{APP}", timeout=30) or []:
-        if m.get("reply_to"):
+    msgs = _bridge("inbox", f"app:{APP}", timeout=30)
+    if not isinstance(msgs, list):                # the bridge answers a list; anything else is not an inbox
+        return
+    for m in msgs:
+        if isinstance(m, dict) and m.get("reply_to"):
             _bridge("ack", f"app:{APP}", m["id"], timeout=30)
 
 

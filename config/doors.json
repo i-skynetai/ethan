@@ -1,8 +1,0 @@
-{
-  "_comment": "Which privacy classes each door may file into, and whether it may relay an ask to a running coding session. A door not listed here may do neither. Telegram is reachable from a phone, so it may write only to personal KBs and may not relay. The clock is Ethan acting on a schedule you set: it may relay (review-only) but files nowhere, and the router refuses it a build.",
-  "telegram-private": { "classes": ["personal"] },
-  "console": { "classes": ["personal", "work", "client"], "relay": true },
-  "cli": { "classes": ["personal", "work", "client"], "relay": true },
-  "backfill": { "classes": ["work", "client"] },
-  "clock": { "classes": [], "relay": true }
-}

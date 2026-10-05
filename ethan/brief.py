@@ -1,8 +1,10 @@
 """Task brief — what a hand receives. Never a bare prompt."""
 
 
-def render(task, context_hits, repo, done_when=None, must_not=None, prior_output=None):
+def render(task, context_hits, repo, done_when=None, must_not=None, prior_output=None, sender=None):
     lines = [f"# Task\n{task}\n"]
+    if sender:                                    # who is asking, so the hand never thinks it is the person
+        lines.append(f"# From\n{sender}. The person has not read this brief; report to them through Ethan.\n")
     if prior_output:
         lines.append("# Output of the previous step (review/build on top of this)\n"
                      + prior_output[:12000] + "\n")
