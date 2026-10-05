@@ -10,7 +10,7 @@ The bridge is optional. Ethan finds it through `ETHAN_BRIDGE_DIR` (the bridge's
 checkout) and runs its command line as a separate process with no shell, so the text
 of an ask is never parsed by a shell.
 """
-import json, os, re, subprocess, sys, time, uuid
+import json, os, re, subprocess, sys, threading, time, uuid
 from . import bridge_registry, identity, policy, store
 from .util import cfg, log, state_dir
 
@@ -115,14 +115,31 @@ def wants_relay(text, sessions):
     return bool(who and (_SESSION.search(who) or _named(who, sessions)))
 
 
+#: Words in an addressee that do not name a session: "the running claude session".
+_FILLER = {"the", "a", "an", "my", "our", "this", "that", "current", "open", "running", "live",
+           "active", "session", "sessions", "one", "to", "for", "please", "claude", "codex", "it"}
+
+
+def _unknown_names(who, sessions):
+    """Words in the addressee that look like a name and match no registered session.
+    'the claude session foobar' names foobar; nobody is called that; nothing matches."""
+    words = set(re.findall(r"[\w][\w.-]*", who.lower())) - _FILLER
+    known = {s["name"].lower() for s in sessions}
+    return sorted(w for w in words if w not in known)
+
+
 def targets(text, sessions, cwd=None):
-    """The sessions this ask could mean. One is a decision; more or none is a question."""
+    """The sessions this ask could mean. One is a decision; more or none is a question.
+    A name that matches no session matches nothing: Ethan never picks another one."""
     sessions = [s for s in sessions if s["agent"] in AGENTS]
     who = addressee(text) or text
     agent = [a for a in AGENTS if re.search(rf"\b{a}\b", who.lower())]
     if len(agent) == 1:
         sessions = [s for s in sessions if s["agent"] == agent[0]]
-    pool = _named(who, sessions) or sessions
+    named = _named(who, sessions)
+    if not named and _unknown_names(who, sessions):
+        return []
+    pool = named or sessions
     if cwd and len(pool) > 1:
         here = os.path.normcase(os.path.abspath(cwd))
         inside = [s for s in pool if s.get("project") and
@@ -131,9 +148,12 @@ def targets(text, sessions, cwd=None):
     return pool
 
 
-def _mode(text):
+def _mode(text, scheduled=False):
     """Review-only unless the ask says to implement AND the policy lets an explicit ask
-    do that ("ask"). Under "never", the ask is still relayed, review-only."""
+    do that ("ask"). Under "never", the ask is still relayed, review-only. A scheduled
+    ask is never more than review-only: nobody is at the door when it runs."""
+    if scheduled:
+        return "review-only"
     if _IMPLEMENT.search(text) and policy.action("relay_implementation") in ("allow", "ask"):
         return "implementation"
     return "review-only"
@@ -154,13 +174,20 @@ def _seen(s):
 
 
 # ── the conversation ───────────────────────────────────────────────────────
-def take(chat_id, text, reply, door, cwd=None):
+def take(chat_id, text, reply, door, cwd=None, scheduled=False):
     """Handle the ask when it is Ethan's to relay, and say whether it was.
 
     An ask is a relay's when it answers "which session did you mean?", or when it
     tells Ethan to pass something to a session. An open question that the next ask
     does not answer is dropped, said so, and the ask is routed as usual."""
-    question = store.open_question(chat_id)
+    question = store.open_question(chat_id) if not scheduled else None
+    # A scheduled ask is never an answer to "which session?": nobody is at the door.
+    # And an answer must come through the door that asked, so a pending question from
+    # the console cannot be finished from Telegram with the console's rights.
+    if question and question["door"] != door:
+        reply(f"Relay #{question['id']} is waiting for an answer from the {question['door']} door, "
+              f"where it was asked; answer it there. Nothing was sent.")
+        return True
     if question:
         pool = json.loads(question["candidates"] or "[]")
         if _CANCEL.match(text):
@@ -179,7 +206,7 @@ def take(chat_id, text, reply, door, cwd=None):
     reg = bridge_registry.sessions()
     if not wants_relay(text, reg["sessions"]):
         return False
-    _relay(chat_id, text, reply, door, cwd, reg)
+    _relay(chat_id, text, reply, door, cwd, reg, scheduled)
     return True
 
 
@@ -192,7 +219,7 @@ def _pick(text, pool):
     return named[0] if len(named) == 1 else None
 
 
-def _relay(chat_id, text, reply, door, cwd, reg):
+def _relay(chat_id, text, reply, door, cwd, reg, scheduled=False):
     if not allowed(door):
         reply(f"I do not pass work to coding sessions from the {door} door. "
               "Ask from the console or the command line.")
@@ -205,14 +232,16 @@ def _relay(chat_id, text, reply, door, cwd, reg):
         return
     pool = targets(text, reg["sessions"], cwd)
     if len(pool) == 1:
-        return _send(store.add_relay(chat_id, door, text, _mode(text)), pool[0], reply)
+        return _send(store.add_relay(chat_id, door, text, _mode(text, scheduled),
+                                     purpose="scheduled" if scheduled else None), pool[0], reply)
     if not pool:
-        rid = store.add_relay(chat_id, door, text, _mode(text))
+        rid = store.add_relay(chat_id, door, text, _mode(text, scheduled))
         store.update_relay(rid, state="dropped", note="no registered session matched")
         reply("No registered Claude or Codex session matches that, so I sent nothing and started nothing. "
               "`show my agents` lists the sessions I can reach.")
         return
-    store.add_relay(chat_id, door, text, _mode(text), candidates=pool)
+    store.add_relay(chat_id, door, text, _mode(text, scheduled), candidates=pool,
+                    purpose="scheduled" if scheduled else None)
     lines = "\n".join(f"{i}. {_label(s)} · {s.get('project') or '?'} · {_seen(s)}"
                       for i, s in enumerate(pool, 1))
     reply(f"Which session should get this? I have not sent anything yet.\n{lines}\n"
@@ -244,7 +273,8 @@ def _gate(row):
         return f"the {row['door']} door may not pass work to coding sessions"
     if not policy.allowed("relay_review_only"):
         return policy.refusal("relay_review_only", "I may not pass asks to coding sessions")
-    if row["mode"] == "implementation" and policy.action("relay_implementation") == "never":
+    if row["mode"] == "implementation" and (row.get("purpose") == "scheduled"
+                                           or policy.action("relay_implementation") == "never"):
         store.update_relay(row["id"], mode="review-only",
                            note="implementation is never in the policy; sent review-only")
         row["mode"] = "review-only"
@@ -281,10 +311,14 @@ _DUPLICATE = re.compile(r"already message (m_[0-9a-f]+)")
 
 
 def deliver_reply(chat_id, door, text):
-    """Where a relay's answer goes: the conversation that asked, and your phone when
-    you are away (see `reach.py`). The console and the CLI read the conversation."""
+    """Where a relay's answer goes: the conversation that asked, and only there. A
+    session's answer may hold work or client content, and the phone is not a place
+    the privacy wall covers, so it never goes to the phone (see `reach.py`)."""
     from . import reach
-    reach.tell(chat_id, door, text, urgent=False)
+    reach.tell(chat_id, door, text, urgent=False, phone=False)
+
+
+_FOLLOW_LOCK = threading.Lock()
 
 
 def follow(deliver=deliver_reply, recover=False):
@@ -300,6 +334,15 @@ def follow(deliver=deliver_reply, recover=False):
       delivers its answer.
     - Replies in Ethan's own bridge inbox are acknowledged, so they do not pile up.
     Returns the rows it changed."""
+    if not _FOLLOW_LOCK.acquire(blocking=False):  # a pass is already running on another thread
+        return []
+    try:
+        return _follow(deliver, recover)
+    finally:
+        _FOLLOW_LOCK.release()
+
+
+def _follow(deliver, recover):
     changed = []
     for r in store.open_relays():
         touched = False

@@ -113,7 +113,7 @@ def main():
     if not a.quiet:
         print(f"→ ethan ({r.get('chat')}): {ask}", flush=True)
 
-    idle, last = 0, ""
+    idle, last, answer, failed = 0, "", "", False
     while True:
         try:
             d = get(f"/api/replies?chat={a.chat}&after={after}")
@@ -123,6 +123,10 @@ def main():
         if msgs:
             for m in msgs:
                 after, last = m["id"], m["text"]
+                if not last.startswith(DONE):     # the close-out is not the answer
+                    answer = last
+                if last.startswith("error:"):
+                    failed = True
                 if not a.quiet:
                     print(m["text"], flush=True)
             idle = 0
@@ -137,7 +141,9 @@ def main():
         time.sleep(3)
 
     if a.quiet:
-        print(last)
+        print(answer or last)
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

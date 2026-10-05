@@ -3,6 +3,7 @@
 Read from the ledger, never from a model. The router's `status` kind, the console's
 `status` shortcut and `ethan --status` all come here, so there is one answer.
 """
+import re
 import time
 from . import clock, policy, relay, store, todo
 
@@ -10,6 +11,14 @@ from . import clock, policy, relay, store, todo
 def _age(ts):
     mins = int((time.time() - (ts or time.time())) // 60)
     return f"{mins} min" if mins < 120 else f"{mins // 60} h"
+
+
+_WANTS = re.compile(r"^\s*(?:(?:what(?:'s| is) (?:running|pending|the status|going on))|status|anything pending)\s*\??\s*$", re.I)
+
+
+def wants(text):
+    """The asks that are a status question and nothing else, read by a rule."""
+    return bool(_WANTS.match(text))
 
 
 def text():

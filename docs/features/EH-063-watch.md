@@ -1,6 +1,6 @@
 # EH-063 — Watch a source through a session's own connectors
 
-**Status:** In review · **Owner:** Claude (ethan), 2026-10-04 · **Issue:** —
+**Status:** Done — 0.2.0 · **Owner:** Claude (ethan), 2026-10-04 · **Issue:** —
 
 ## What is missing today
 

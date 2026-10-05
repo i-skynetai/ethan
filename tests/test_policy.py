@@ -36,12 +36,11 @@ class TheFile(unittest.TestCase):
         for never in ("send_in_your_name", "push_or_merge", "start_or_resume_a_session"):
             self.assertEqual(policy.action(never), "never", never)
         self.assertEqual(policy.action("something nobody wrote down"), "never")
-        self.assertTrue(policy.may_relay("console") and policy.may_relay("cli") and policy.may_relay("clock"))
+        self.assertTrue(policy.may_relay("console") and policy.may_relay("cli"))
         self.assertFalse(policy.may_relay("telegram-private"))
-        self.assertFalse(policy.may_build("clock"))
+        self.assertFalse(policy.may_build("backfill"))
         self.assertTrue(policy.may_build("console"))
         self.assertEqual(policy.may_file("telegram-private", "work"), (False, ["personal"]))
-        self.assertEqual(policy.may_file("clock", "personal"), (False, []))
 
     def test_an_unknown_door_may_do_nothing(self):
         self.assertIsNone(policy.door("smoke-signal"))
@@ -59,7 +58,6 @@ class TheFile(unittest.TestCase):
         shipped = json.load(open(os.path.join(ROOT, "ethan", "defaults", "policy.json"), encoding="utf-8"))
         legacy = {"telegram-private": {"classes": ["personal"]},
                   "console": {"classes": ["personal"], "relay": True},
-                  "clock": {"classes": [], "relay": True},
                   "my-door": {"classes": ["work"]}}
         with tempfile.TemporaryDirectory() as tmp:
             json.dump(legacy, open(os.path.join(tmp, "doors.json"), "w"))
@@ -71,8 +69,7 @@ class TheFile(unittest.TestCase):
                 self.assertEqual(policy.action("relay_implementation"), "ask")
                 self.assertEqual(policy.may_file("console", "personal"), (True, ["personal"]))   # the person's doors win
                 self.assertEqual(policy.may_file("console", "work"), (False, ["personal"]))
-                self.assertFalse(policy.may_build("clock"))                        # shipped build=false fills the gap
-                self.assertFalse(policy.may_build("backfill"))
+                self.assertFalse(policy.may_build("backfill"))                     # shipped build=false fills the gap
                 self.assertTrue(policy.may_build("console") and policy.may_build("my-door"))
                 self.assertEqual(policy.may_file("my-door", "work"), (True, ["work"]))
                 # and the behaviour, not only the values: a reminder is set, a relay goes out
@@ -90,7 +87,7 @@ class EveryNeverAndEveryAsk(unittest.TestCase):
         with mock.patch.object(llm, "ask", return_value=dict(route)), \
                 mock.patch.object(hands, "run", side_effect=AssertionError("a hand started")):
             out = []
-            router.handle("p-build", "write the summary", out.append, door="clock")
+            router.handle("p-build", "write the summary", out.append, door="console", scheduled=True)
             self.assertIn("may only remind and read", out[0])
             out = []
             router.handle("p-build2", "write the summary", out.append, door="backfill")

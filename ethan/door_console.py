@@ -48,6 +48,7 @@ def _ask(text, chat=CHAT, cwd=None, door=CHAT):
     global _ACTIVE
     with _ACTIVITY_LOCK:
         _ACTIVE += 1
+    store.note_desktop()                          # you are at the laptop: reach.away() reads this
     def reply(msg):
         store.add_reply(chat, msg)
     try:

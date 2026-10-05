@@ -8,7 +8,7 @@ from pathlib import Path
 def sessions():
     path = Path(os.environ.get("ETHAN_BRIDGE_DB", str(Path.home() / ".agent-bridge" / "bridge.db")))
     if not path.is_file():
-        return {"available": False, "sessions": [], "note": "Agent-bridge is not configured on this laptop."}
+        return {"available": False, "sessions": [], "note": "Agent-bridge is not configured here (set ETHAN_BRIDGE_DB or ETHAN_BRIDGE_DIR)."}
     try:
         with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)) as db:
             db.row_factory = sqlite3.Row

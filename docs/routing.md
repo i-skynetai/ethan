@@ -62,6 +62,9 @@ the ask is for. If it does, the ask is relayed through a local message bridge
 (`agent-bridge`), with no model call. It never becomes a build, so it never starts a
 new session.
 
+A name that matches no registered session matches nothing: "ask the claude session
+foobar to …" sends nothing rather than picking another session.
+
 - **One target.** Ethan matches the bridge's registered sessions by name, then by
   agent (`claude`, `codex`), then by the caller's folder. If that leaves one session,
   the ask goes to it. If it leaves none, nothing is sent. If it leaves several, Ethan

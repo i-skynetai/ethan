@@ -70,6 +70,9 @@ off, Ethan says so and stops; set `ETHAN_CONSOLE_PORT` to a free port.
 bin/ethan "review PROJ-412"
 ```
 
+With `PROJ-` as a hint in your `kb-map.json`, no model is called; otherwise the router
+key decides.
+
 A hint plus a first word that names the work decides the route with no model call.
 Ethan routes it to a knowledge base, calls `sky build` with a role, and reports back
 when the run ends. It does not stream the run — mid-session input is deliberately
@@ -77,8 +80,11 @@ closed until there is a real boundary for it.
 
 ## 5. Hand an ask to a session that is already open
 
-Set `ETHAN_BRIDGE_DIR` in `.env` to a checkout of the local message bridge
-(`agent-bridge`). Then, from the console or the command line:
+Hand-offs and watches need a local message bridge, `agent-bridge`, which is not
+published yet; until it is, this step and the next are for the author's laptop.
+Without it Ethan says it cannot reach a running session and sends nothing. Set
+`ETHAN_BRIDGE_DIR` in `.env` to a checkout of the bridge. Then, from the console or the
+command line:
 
 ```bash
 bin/ethan "ask the codex session codex-ethan to review the open merge request"

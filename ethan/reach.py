@@ -18,6 +18,11 @@ COLS = "id,ts,chat_id,route,state,why,text"
 
 
 def _ensure():
+    with store._LOCK:
+        return __ensure()
+
+
+def __ensure():
     d = store.db()
     d.execute("""CREATE TABLE IF NOT EXISTS reach(
         id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, route TEXT, state TEXT, why TEXT, text TEXT)""")
@@ -54,9 +59,9 @@ def _phone_ids():
 
 
 def last_seen(now=None):
-    """When you last typed anything through any door. None when never."""
-    row = store.db().execute("SELECT MAX(ts) FROM messages WHERE role='user'").fetchone()
-    return row[0] if row and row[0] else None
+    """When you last typed at the laptop — the console or the CLI. A Telegram message
+    is you on your phone, not at the laptop, so it does not count. None when never."""
+    return store.last_desktop()
 
 
 def away(now=None):
@@ -82,13 +87,17 @@ def is_urgent(text):
 
 
 # ── the act ─────────────────────────────────────────────────────────────────
-def tell(chat_id, door, text, urgent=None, now=None):
+def tell(chat_id, door, text, urgent=None, now=None, phone=True):
     """Put `text` where you will see it. The conversation always; the phone when the
-    item is urgent, or when you are away and it is not quiet hours. Says what it did."""
+    item is urgent, or when you are away and it is not quiet hours — unless the caller
+    says `phone=False`, which answers from sessions do. Says what it did."""
     now = now or time.time()
     urgent = is_urgent(text) if urgent is None else urgent
     store.add_reply(chat_id, text)
     _record(chat_id, "conversation", "sent", "always", text)
+    if not phone:
+        _record(chat_id, "phone", "skipped", "a session's answer stays on the desktop", text)
+        return ["conversation"]
     if not policy.allowed("phone"):
         _record(chat_id, "phone", "skipped", "policy: actions.phone is never", text)
         return ["conversation"]

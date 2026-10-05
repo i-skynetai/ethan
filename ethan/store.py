@@ -2,7 +2,7 @@
 import atexit, os, shutil, sqlite3, threading, time
 from .util import state_dir, log
 
-_LOCK = threading.Lock()
+_LOCK = threading.RLock()                     # re-entrant: a writer may call a reader
 _DB = None
 
 
@@ -198,6 +198,25 @@ def replies_since(chat_id, after_id=0):
     return [{"id": i, "ts": t, "text": x} for i, t, x in rows]
 
 
+# ── presence: when you last typed at the laptop ─────────────────────────────
+def note_desktop():
+    """The console and the CLI call this on every ask. Telegram does not."""
+    with _LOCK:
+        d = db()
+        d.execute("CREATE TABLE IF NOT EXISTS presence(key TEXT PRIMARY KEY, value REAL)")
+        d.execute("INSERT INTO presence(key,value) VALUES('desktop',?) "
+                  "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (time.time(),))
+        d.commit()
+
+
+def last_desktop():
+    with _LOCK:
+        d = db()
+        d.execute("CREATE TABLE IF NOT EXISTS presence(key TEXT PRIMARY KEY, value REAL)")
+        row = d.execute("SELECT value FROM presence WHERE key='desktop'").fetchone()
+    return row[0] if row else None
+
+
 # ── relays to running sessions ──────────────────────────────────────────────
 _RELAY_COLS = ("id,ts,chat_id,door,ask,mode,candidates,target,target_ref,bridge_key,message_id,"
                "state,note,result,updated,purpose")
@@ -233,7 +252,8 @@ def update_relay(relay_id, **fields):
 
 
 def relay(relay_id):
-    row = db().execute(f"SELECT {_RELAY_COLS} FROM relays WHERE id=?", (relay_id,)).fetchone()
+    with _LOCK:
+        row = db().execute(f"SELECT {_RELAY_COLS} FROM relays WHERE id=?", (relay_id,)).fetchone()
     return dict(zip(_RELAY_COLS.split(","), row)) if row else None
 
 
@@ -253,9 +273,12 @@ def open_relays(chat_id=None):
     args = RELAY_OPEN
     if chat_id is not None:
         q += " AND chat_id=?"; args = (*RELAY_OPEN, str(chat_id))
-    return [dict(zip(_RELAY_COLS.split(","), r)) for r in db().execute(q + " ORDER BY id", args).fetchall()]
+    with _LOCK:
+        rows = db().execute(q + " ORDER BY id", args).fetchall()
+    return [dict(zip(_RELAY_COLS.split(","), r)) for r in rows]
 
 
 def recent_relays(n=20):
-    rows = db().execute(f"SELECT {_RELAY_COLS} FROM relays ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+    with _LOCK:
+        rows = db().execute(f"SELECT {_RELAY_COLS} FROM relays ORDER BY id DESC LIMIT ?", (n,)).fetchall()
     return [dict(zip(_RELAY_COLS.split(","), r)) for r in rows]

@@ -103,7 +103,7 @@ def _model_route(text, bmap, choices, has_prior):
 CLOSE_OUT = ("Session can close", "Not closing")
 
 
-def handle(chat_id, text, reply, door="telegram-private", cwd=None):
+def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=False):
     """Process one ask. reply(str) sends back through the originating door.
 
     cwd, when given, is where the CALLER is working. It wins over the kb's
@@ -113,6 +113,10 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None):
     Every ask ends with exactly one close-out line, whatever happened — an answer,
     a failed task, an error. `bin/ethan` waits for that line, and a door that never
     gets one leaves the person wondering whether anything ran.
+
+    scheduled: the clock is running this ask at a time the person set. It keeps the
+    rights of the door the person used, minus what the clock may not do: start a hand,
+    or hand a session implementation rights.
     """
     closed = []
     def send(msg):
@@ -122,7 +126,7 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None):
             closed.append(msg)
         reply(msg)
     try:
-        _handle(chat_id, text, send, door, cwd)
+        _handle(chat_id, text, send, door, cwd, scheduled)
     except Exception as e:                      # a bad ask must still be answered
         log(f"ask failed: {type(e).__name__}: {e}")
         send(f"error: {e}")
@@ -131,18 +135,21 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None):
         send(f"Session can close — {why}." if ok else f"Not closing — {why}.")
 
 
-def _handle(chat_id, text, reply, door, cwd):
+def _handle(chat_id, text, reply, door, cwd, scheduled=False):
     history = store.recent(chat_id)              # read before this ask is stored
     store.remember(chat_id, "user", text)        # stored once, whatever the door
     # Passing an ask to a session that is already running is decided before any
     # routing: it must never fall through to a build, which would start a new one.
-    if relay.take(chat_id, text, reply, door, cwd):
+    if relay.take(chat_id, text, reply, door, cwd, scheduled=scheduled):
         return
     if watch.take(chat_id, text, reply, door):   # "watch mail through … every weekday at …: …"
         return                                   # before the clock, which would hear only "every … at"
     if clock.take(chat_id, text, reply, door):   # "remind me …", "every weekday at …"
         return
     if todo.take(chat_id, text, reply, door):    # "add task: …", "my tasks", "done #3"
+        return
+    if status.wants(text):                       # "what is running?" is a rule, not a model call
+        reply(status.text())
         return
     bmap = kb.kb_map()
     hinted, hinted_hand = _hint_kbs(text), _hint_hand(text)
@@ -162,10 +169,11 @@ def _handle(chat_id, text, reply, door, cwd):
     log(f"route: {route}")
 
     kind = route["kind"]
-    if kind in ("build", "review", "chain") and not policy.may_build(door):
-        # Starting a hand needs a person at a door the policy trusts with it. The clock
-        # may remind and read; it may not build.
-        reply(f"Not started: the {door} door may only remind and read, not start a {kind}. "
+    if kind in ("build", "review", "chain") and (scheduled or not policy.may_build(door)):
+        # Starting a hand needs a person at a door the policy trusts with it, now. The
+        # clock may remind and read; it may not build.
+        why = "this was scheduled, and the clock" if scheduled else f"the {door} door"
+        reply(f"Not started: {why} may only remind and read, not start a {kind}. "
               f"Ask for it yourself from the console or the command line when you want it run.")
         return
     choices = hinted if len(hinted) > 1 else list(bmap)
@@ -190,8 +198,9 @@ def _handle(chat_id, text, reply, door, cwd):
         reply(status.text())
         return
     if kind == "updates":
-        reply("I do not read mail or notifications yet. That comes through a session's own "
-              "connectors (roadmap EH-063). I can tell you what is running and what is pending.")
+        reply("I do not read mail or notifications myself. Set a watch and a session reads them "
+              "through its own connector: 'watch mail through the claude session <name> every "
+              "weekday at 09:00: what must I reply to?'")
         return
     if kind == "chat":
         out = llm.ask([{"role": "system", "content": VOICE},

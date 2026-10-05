@@ -19,18 +19,29 @@ from .util import log
 
 COLS = "id,ts,chat_id,title,source,link,why,due,state,until,note,dedupe,updated"
 OPEN = ("open", "snoozed")
+#: A task marked done is not re-added when its source reports it again within this long.
+DONE_STAYS_DONE = 30 * 86400
 
 _ADD = re.compile(r"^\s*(?:add\s+(?:a\s+)?task|task|todo)\s*[:\-]\s*(.+)$", re.I | re.S)
-_LIST = re.compile(r"^\s*(?:my tasks|list tasks|show (?:my )?tasks|what should i do(?: now| next)?|what'?s on my list)\b", re.I)
-_DONE = re.compile(r"^\s*(?:done|finished|completed)\s+(?:task\s+)?#?(\d+)\b|^\s*task\s+#?(\d+)\s+(?:is\s+)?done\b", re.I)
+_LIST = re.compile(r"^\s*(?:my tasks|list tasks|show (?:my )?tasks|what should i do(?: now| next)?|what(?:'s| is) on my (?:task )?list)\b", re.I)
+#: "done #3", "done task 3", "task #3 done" — not "completed 3 reviews today".
+_DONE = re.compile(r"^\s*(?:done|finished|completed)\s+(?:task\s+#?|#)(\d+)\s*$|^\s*task\s+#?(\d+)\s+(?:is\s+)?done\s*$", re.I)
 _DROP = re.compile(r"^\s*(?:drop|remove|delete)\s+task\s+#?(\d+)\b", re.I)
 _SNOOZE = re.compile(r"^\s*snooze\s+(?:task\s+)?#?(\d+)\s+(until|for)\s+(.+)$", re.I)
-_BY = re.compile(r"\s+by\s+(.+?)\s*$", re.I)
+_BY = re.compile(r"\s+by\s+", re.I)             # the LAST "by": "stand by the door by Friday"
 _DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+_MONTHS = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+#: A time is "17:00", "5pm" or "at 5" — never a bare number: "sprint 14" is not two o'clock.
+_TIME = re.compile(r"\b(\d{1,2}):(\d{2})\s*(am|pm)?\b|\b(\d{1,2})\s*(am|pm)\b|\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b", re.I)
 
 
 # ── the ledger ──────────────────────────────────────────────────────────────
 def _ensure():
+    with store._LOCK:
+        return __ensure()
+
+
+def __ensure():
     d = store.db()
     d.execute("""CREATE TABLE IF NOT EXISTS todos(
         id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, title TEXT, source TEXT, link TEXT,
@@ -66,8 +77,9 @@ def add(title, source="you", link=None, why=None, due=None, chat_id=None, dedupe
     key = (dedupe or link or title).strip().lower()
     with store._LOCK:
         d = _ensure()
-        row = d.execute(f"SELECT id FROM todos WHERE source=? AND dedupe=? AND state IN "
-                        f"({','.join('?' * len(OPEN))})", (source, key, *OPEN)).fetchone()
+        row = d.execute(f"SELECT id FROM todos WHERE source=? AND dedupe=? AND (state IN "
+                        f"({','.join('?' * len(OPEN))}) OR (state='done' AND updated>?))",
+                        (source, key, *OPEN, time.time() - DONE_STAYS_DONE)).fetchone()
         if row:
             return row[0], False
         now = time.time()
@@ -106,15 +118,24 @@ def _parse_due(text, now=None):
     low = text.strip().lower()
     day = None
     m = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", low)
+    md = (re.search(rf"\b(\d{{1,2}})\s+({'|'.join(_MONTHS)})\w*(?:,?\s+(\d{{4}}))?\b", low)
+          or re.search(rf"\b({'|'.join(_MONTHS)})\w*\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,?\s+(\d{{4}}))?\b", low))
     if m:
         day = dt.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    elif md:                                      # "10 Oct", "Oct 10 2026"
+        a, b, year = md.group(1), md.group(2), md.group(3)
+        dnum, mon = (int(a), b) if a.isdigit() else (int(b), a)
+        month = _MONTHS.index(mon[:3]) + 1
+        day = dt.datetime(int(year) if year else base.year, month, dnum)
+        if not year and day.date() < base.date():
+            day = dt.datetime(base.year + 1, month, dnum)
     elif "tomorrow" in low:
         day = (base + dt.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     elif "today" in low or "tonight" in low:
         day = base.replace(hour=0, minute=0, second=0, microsecond=0)
     else:
-        for i, name in enumerate(_DAYS):
-            if re.search(rf"\b{name[:3]}\w*\b", low):
+        for i, name in enumerate(_DAYS):          # the full name or its three letters, as a word
+            if re.search(rf"\b(?:{name}|{name[:3]})\b", low):
                 ahead = (i - base.weekday()) % 7 or 7
                 day = (base + dt.timedelta(days=ahead)).replace(hour=0, minute=0, second=0, microsecond=0)
                 break
@@ -123,10 +144,14 @@ def _parse_due(text, now=None):
         n, unit = int(m.group(1)), m.group(2)
         return now + n * (60 if unit.startswith("m") else 3600 if unit.startswith("h") else 86400)
     rest = re.sub(r"\d{4}-\d{2}-\d{2}", " ", low)          # the date's digits are not a time
-    t = re.search(r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b", rest)
+    if md:
+        rest = rest.replace(md.group(0), " ")
+    t = _TIME.search(rest)
     hm = None
     if t:
-        h, mi, ap = int(t.group(1)), int(t.group(2) or 0), t.group(3)
+        g = t.groups()
+        h, mi, ap = (int(g[0]), int(g[1]), g[2]) if g[0] else (int(g[3]), 0, g[4]) if g[3] else \
+                    (int(g[5]), int(g[6] or 0), g[7])
         if ap == "pm" and h < 12:
             h += 12
         if ap == "am" and h == 12:
@@ -176,9 +201,10 @@ def take(chat_id, text, reply, door, now=None):
     if m:
         body = m.group(1).strip().rstrip(".")
         due, title = None, body
-        by = _BY.search(body)
+        bys = list(_BY.finditer(body))
+        by = bys[-1] if bys else None
         if by:
-            due = parse_due(by.group(1), now)
+            due = parse_due(body[by.end():], now)
             if due is not None:
                 title = body[:by.start()].strip()
         tid, new = add(title, "you", due=due, chat_id=chat_id)

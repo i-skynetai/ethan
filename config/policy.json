@@ -3,7 +3,8 @@
     "Every rule about what Ethan may do, in one file. Read only by ethan/policy.py.",
     "doors: what each way in may do. classes: the privacy classes it may file into",
     "(a door not listed, or with no classes, files nowhere). relay: may pass an ask to a",
-    "running coding session. build: may start a hand through sky build.",
+    "running coding session. build: may start a hand through sky build. A scheduled ask",
+    "runs with the rights of the door that set it, never more than review-only, never a build.",
     "actions: allow (done when asked), ask (done only when the person says so in the",
     "ask itself), never (refused, whoever asks). For every act but relay_implementation,",
     "allow and ask mean the same. Each is enforced where it takes effect: remind in the",
@@ -16,8 +17,7 @@
     "telegram-private": { "classes": ["personal"], "relay": false, "build": true },
     "console": { "classes": ["personal", "work", "client"], "relay": true, "build": true },
     "cli": { "classes": ["personal", "work", "client"], "relay": true, "build": true },
-    "backfill": { "classes": ["work", "client"], "relay": false, "build": false },
-    "clock": { "classes": [], "relay": true, "build": false }
+    "backfill": { "classes": ["work", "client"], "relay": false, "build": false }
   },
   "actions": {
     "remind": "allow",

@@ -36,6 +36,11 @@ SHAPE = ("Answer with one line per item, in exactly this shape and nothing else:
 
 # ── the ledger ──────────────────────────────────────────────────────────────
 def _ensure():
+    with store._LOCK:
+        return __ensure()
+
+
+def __ensure():
     d = store.db()
     d.execute("""CREATE TABLE IF NOT EXISTS watches(
         id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, door TEXT, source TEXT, target TEXT,
@@ -164,7 +169,10 @@ def absorb(r, state, result):
     parts = r["purpose"].split(":")
     wid = int(parts[1])
     ran = float(parts[2]) if len(parts) > 2 else r["ts"]
-    w = get(wid) or {"source": "watch"}
+    w = get(wid) or {"source": "watch", "state": "stopped"}
+    if w.get("state") != "active":
+        return (f"Watch #{wid} was stopped while its question was out, so its answer was not filed. "
+                f"As it came:\n{(result or '')[-3000:]}")
     if state != "completed":
         return (f"Watch #{wid} ({w['source']}): the session FAILED to answer — {(result or 'no reason')[-800:]}"
                 f" The next run asks again from the same point.")

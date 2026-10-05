@@ -16,8 +16,8 @@ line and Telegram. The person stays the authority.
 
 ## Why it is built
 
-Most people with Claude or Codex use them one chat at a time: open a session, explain
-the context again, watch it, copy the result somewhere, forget to follow up. The tools
+Most people use Claude or Codex one chat at a time: open a session, explain the
+context again, watch it, copy the result out, forget to follow up. The tools
 are strong; the operating around them is where the value leaks. Ethan is that operating
 layer and nothing more. It decides when something needs doing and who should do it,
 hands it over with the right context, follows it to the answer, and keeps a record you
@@ -25,16 +25,16 @@ can trust. It does not rebuild what the agents already do well: reading your mai
 tickets through their own connectors, summarising, drafting, writing code.
 
 It is built for one person first — real benefit from AI in a working day, with no new
-service to pay for or trust — and for teams after that. Because Ethan
-is provider-neutral and keeps its rules, identity and ledger in the open, it is a small,
-honest way for an organisation to make everyday AI use effective and accountable across
-more than one provider. The [vision](docs/vision.md) says where it is going.
+service to pay for or trust — and for teams after that. Provider-neutral, with its
+rules, identity and ledger in the open, it is a small, honest way for an organisation to
+make everyday AI use effective and accountable. The [vision](docs/vision.md) says where
+it is going.
 
 ## Words you need
 
 - **Door** — a way in: the console, the `ethan` command, Telegram.
-- **Knowledge base (KB)** — where what you know is stored and searched: a remote
-  service or a folder of Markdown notes.
+- **Knowledge base (KB)** — where what you know is stored and searched: a service or
+  a folder of notes.
 - **Hint** — a keyword a KB claims, such as `PROJ-`; an ask containing it needs no model.
 - **Hand** — the coding agent that does the work, started through `sky build` from
   [Skynet Harness](https://github.com/i-skynetai/skynet-harness).
@@ -52,7 +52,7 @@ cd ethan
 ```
 
 The demo runs one ask through routing, launch, close-out and the ledger on a sample shop
-copied to a temporary folder. Only the hand is faked: `demo/fake-sky` prints a fixed
+in a temporary folder. Only the hand is faked: `demo/fake-sky` prints a fixed
 review. Its real output:
 
 ![The real output of ./run.sh --demo: a hinted ask routed with no model call, launched as a reviewer, a note kept, the session closed](docs/images/demo.png)
@@ -60,28 +60,29 @@ review. Its real output:
 ## Use it in five steps
 
 1. **Install the harness** and put its `core/bin/sky` on your `PATH`, or set `sky.bin`
-   in `config/ethan.json`, or export `SKY_BIN`. Without it Ethan still routes, and
-   refuses to build with a message saying which to do.
-2. **Add your keys.** `cp .env.example .env`, then fill in `OPENAI_API_KEY`. It is used
-   only for routing asks that no hint decides; reminders, tasks, relays and watches
-   need no key at all.
+   in `config/ethan.json`, or export `SKY_BIN`. Without it Ethan routes but refuses to
+   build, and says which to do.
+2. **Add your keys.** `cp .env.example .env`, then fill in `OPENAI_API_KEY`. Reminders,
+   tasks, status, hand-offs and watches need no key; routing without a hint, questions
+   and chat use it.
 3. **Describe your KBs.** `cp config/kb-map.example.json config/kb-map.json`, then give
    each KB a specific `purpose`, its `hints` and its privacy class. See
    [Routing](docs/routing.md).
 4. **Start it.** `./run.sh`, or `pip install .` and `ethan-service`. The console opens
    at `http://127.0.0.1:8787`.
-5. **Ask.** `ethan "review PROJ-412"`, `ethan "remind me at 15:00 to send the report"`,
+5. **Ask.** `ethan "remind me at 15:00 to send the report"`, `ethan "review PROJ-412"`
+   (with `PROJ-` as a hint in your map, no model is called),
    `ethan "ask the codex session codex-ethan to review the open merge request"`.
 
 ## What happens on every ask
 
 ![One ask: through a door, routed by hint or a small model, cited context, launched through sky build, then the close-out](docs/images/run.png)
 
-Rules first: a reminder, a task, a relay or a watch is read with no model. For work, a
+Rules first: reminders, tasks, relays and watches are read with no model. For work, a
 hint picks the KB, else a small model sees only each KB's purpose and the ask. Ethan
 pulls cited context, writes a brief, and starts the hand through `sky build` with one
-secret. Afterwards the hand proposes what to keep, and Ethan checks the privacy class
-and scans for secrets before writing. See [Architecture](docs/architecture.md).
+secret. Afterwards the hand proposes what to keep; Ethan checks the privacy class and
+scans for secrets first. See [Architecture](docs/architecture.md).
 
 ## What you get
 
@@ -89,21 +90,22 @@ and scans for secrets before writing. See [Architecture](docs/architecture.md).
   did not choose is never used.
 - Close-out that always reports: kept, nothing kept and why, or refused and why.
 - A privacy wall on by default: Telegram may file only into personal KBs.
-- A SQLite ledger of tasks, runs, logs, relays, reminders and every close-out decision.
+- A SQLite ledger of tasks, runs, relays, reminders and every close-out decision.
 - Asks handed to an open coding session and followed to the answer; reminders, one
   task list, and watches on your mail or tickets through that session — by rules, and
-  nothing sent on your behalf.
+  nothing sent on your behalf. Hand-offs and watches need `agent-bridge`, a local
+  bridge not published yet; without it Ethan says so and sends nothing.
 
 ## What it is not
 
 - Not an agent that approves, merges or pushes. It picks and launches; you decide.
 - Not a policy engine. The harness enforces what a run may do; Ethan only chooses.
-- Not finished: a call when you are away and one policy file are open rows in the
-  [roadmap](ROADMAP.md).
+- Not finished: a call when you are away and an approval step for riskier acts are
+  open rows in the [roadmap](ROADMAP.md).
 
 ## Status
 
-Version 0.2.0. 167 tests, standard library only, CI on Python 3.11 to 3.13:
+Version 0.2.0. 183 tests, standard library only, CI on Python 3.11 to 3.13:
 `python3 -m unittest discover -s tests -t .`. The real hand path has been tested only
 with a fake `sky`. Changes: the [changelog](CHANGELOG.md).
 

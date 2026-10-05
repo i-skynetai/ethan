@@ -5,6 +5,30 @@ IDs refer to rows in the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
+### Fixed (release review of 0.2.0)
+
+- A scheduled ask runs with the rights of the door that set it, never more than
+  review-only and never a build. Before, "at 17:30, ask the codex session to implement
+  …" from Telegram was relayed with implementation rights through the clock door.
+- A session name that matches nothing matches nothing; Ethan no longer picks another
+  session for "ask the claude session foobar to …".
+- Two concurrent follow-ups (the follower thread and a status ask) could deliver an
+  answer twice and trip SQLite; one pass runs at a time and reads are locked.
+- Due dates are no longer guessed from "month", "wedding", "sprint 14" or "Oct 10";
+  day names must be whole words, a bare number is never a time, and "10 Oct 2026" is
+  read as a date. "completed 3 reviews today" no longer marks task #3 done; "at 3 PRs"
+  is not three o'clock; "stand by the door by Friday" keeps its title.
+- `ethan -q` prints the answer, not the close-out line, and a failed ask exits 1.
+- "What is running?" is read by a rule and needs no model key.
+- "Away" means no ask at the laptop; a Telegram message is you on your phone. A
+  session's answer never goes to the phone.
+- A reminder is told at most once even if a delivery raises; "every hour" does not
+  drift with the tick; a watch stopped while its question was out does not file the
+  answer; an item marked done is not re-added when a source reports it again within
+  30 days.
+- Docs: hand-offs and watches need `agent-bridge`, which is not published yet; "needs
+  no key" says what does and does not; the README example says when a model is called.
+
 ### Added
 
 - EH-067: one policy file. `config/policy.json` holds what each door may do (classes,

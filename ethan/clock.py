@@ -28,7 +28,9 @@ GRACE_SEC = 300
 
 _REMIND = re.compile(r"^\s*(?:please\s+|ethan,?\s+)?remind me\b", re.I)
 _EVERY = re.compile(r"\bevery\s+(weekday|day|morning|hour)\b", re.I)
-_AT = re.compile(r"\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b", re.I)
+#: "at 15:00", "at 9 to …", "at 3pm", "at 09:00, …" — but not "at 3 PRs": a bare number
+#: counts as a time only when the ask goes on with a comma, a colon, "to" or nothing.
+_AT = re.compile(r"\bat\s+(\d{1,2})(?:(?::(\d{2}))|\s*(am|pm)|(?=\s*(?:,|:|to\b|$)))\s*(am|pm)?", re.I)
 _IN = re.compile(r"\bin\s+(\d+)\s*(min(?:ute)?s?|h(?:ou)?rs?|days?)\b", re.I)
 _TOMORROW = re.compile(r"\btomorrow\b", re.I)
 _LIST = re.compile(r"^\s*(?:my|list|show)\s+reminders\b|^\s*what(?:'s| is) scheduled\b", re.I)
@@ -42,6 +44,11 @@ COLS = "id,ts,chat_id,door,kind,what,due,every,at_time,state,last_fired,note"
 
 # ── the ledger ──────────────────────────────────────────────────────────────
 def _ensure():
+    with store._LOCK:
+        return __ensure()
+
+
+def __ensure():
     d = store.db()
     d.execute("""CREATE TABLE IF NOT EXISTS reminders(
         id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, door TEXT, kind TEXT, what TEXT,
@@ -96,7 +103,7 @@ def _note_tick(now):
 
 # ── reading a time ──────────────────────────────────────────────────────────
 def _clock_time(m):
-    h, mi, ap = int(m.group(1)), int(m.group(2) or 0), (m.group(3) or "").lower()
+    h, mi, ap = int(m.group(1)), int(m.group(2) or 0), (m.group(3) or m.group(4) or "").lower()
     if ap == "pm" and h < 12:
         h += 12
     if ap == "am" and h == 12:
@@ -214,8 +221,10 @@ def _deliver(chat_id, door, text):
 
 
 def _run_ask(chat_id, text, deliver, door):
+    """A scheduled ask runs with the rights of the door that set it, minus what the clock
+    may not do (see router.handle's `scheduled`)."""
     from . import router                          # late: router imports this module
-    router.handle(chat_id, text, lambda t, c=chat_id: deliver(c, door, t), door=DOOR)
+    router.handle(chat_id, text, lambda t, c=chat_id: deliver(c, door, t), door=door, scheduled=True)
 
 
 def tick(now=None, deliver=_deliver, run=_run_ask):
@@ -231,23 +240,44 @@ def tick(now=None, deliver=_deliver, run=_run_ask):
         late = now - r["due"]
         if late > GRACE_SEC:
             what = f"watch #{r['what']}" if r["kind"] == "watch" else r["what"]
-            deliver(r["chat_id"], r["door"],
-                    f"Missed reminder #{r['id']} — it was due {_when(r['due'])}, {int(late // 60)} min ago, "
-                    f"and Ethan was not running then: {what}")
+            # The row moves on BEFORE the notice goes out, as below: a missed reminder is
+            # told at most once, and a failed notice cannot hold up the rows after it.
             _set(r["id"], state="missed" if not r["every"] else "scheduled", last_fired=now,
                  note=f"missed at {_when(r['due'])}")
+            try:
+                deliver(r["chat_id"], r["door"],
+                        f"Missed reminder #{r['id']} — it was due {_when(r['due'])}, {int(late // 60)} min ago, "
+                        f"and Ethan was not running then: {what}")
+            except Exception as e:
+                log(f"clock: #{r['id']} missed-notice failed: {type(e).__name__}: {e}")
+                _set(r["id"], note=f"missed at {_when(r['due'])}; notice failed: {type(e).__name__}")
         else:
-            if r["kind"] == "reminder":
-                deliver(r["chat_id"], r["door"], f"Reminder #{r['id']}: {r['what']}")
-            elif r["kind"] == "watch":
-                from . import watch               # late: watch imports this module
-                watch.run(int(r["what"]), deliver, now)
-            else:
-                deliver(r["chat_id"], r["door"], f"Scheduled ask #{r['id']}: {r['what']}")
-                run(r["chat_id"], r["what"], deliver, r["door"])
+            # The row moves on BEFORE anything is delivered: a reminder is told at most
+            # once, never again and again because a delivery raised.
             _set(r["id"], state="fired" if not r["every"] else "scheduled", last_fired=now)
+            try:
+                if r["kind"] == "reminder":
+                    deliver(r["chat_id"], r["door"], f"Reminder #{r['id']}: {r['what']}")
+                elif r["kind"] == "watch":
+                    from . import watch           # late: watch imports this module
+                    watch.run(int(r["what"]), deliver, now)
+                else:
+                    deliver(r["chat_id"], r["door"], f"Scheduled ask #{r['id']}: {r['what']}")
+                    run(r["chat_id"], r["what"], deliver, r["door"])
+            except Exception as e:
+                log(f"clock: #{r['id']} failed: {type(e).__name__}: {e}")
+                _set(r["id"], note=f"failed {_when(now)}: {type(e).__name__}: {e}")
+                try:
+                    deliver(r["chat_id"], r["door"], f"Scheduled #{r['id']} failed: {type(e).__name__}: {e}")
+                except Exception:
+                    pass
         if r["every"]:
-            nxt = now + 3600 if r["every"] == "hour" else _next(r["at_time"], r["every"], now)
+            if r["every"] == "hour":              # from the due time, so ticks do not drift it
+                nxt = r["due"] + 3600
+                while nxt <= now:
+                    nxt += 3600
+            else:
+                nxt = _next(r["at_time"], r["every"], now)
             _set(r["id"], due=nxt)
         out.append(store.db().execute(f"SELECT {COLS} FROM reminders WHERE id=?", (r["id"],)).fetchone())
     _note_tick(now)

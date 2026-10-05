@@ -29,7 +29,7 @@ class StatusFromTheLedger(unittest.TestCase):
         with stubbed(ROUTE) as stub, mock.patch.object(relay, "bridge_dir", return_value=None):
             out = []
             router.handle("status-1", "what is running?", out.append, door="console")
-        self.assertEqual(len(stub.calls), 1)                 # routing only
+        self.assertEqual(len(stub.calls), 0)                 # a rule, not even routing
         self.assertEqual(stub.runs, [])
         text = out[0]
         self.assertIn(f"#{running} build/claude", text)
