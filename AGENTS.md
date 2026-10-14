@@ -32,6 +32,15 @@ Local test success does not prove hosted CI or a fresh install. Record skipped t
 optional-provider checks and live checks separately. Review work never implies permission
 to publish. Pushes go through the maintainer's reviewing session after the checks pass; a session that built a change requests the push rather than pushing. Keep private material out of the repository and its history; never force-push or delete a remote branch.
 
+## Automatic commits and pushes — approved 2026-10-05
+
+The maintainer approved automatic commits and pushes by Codex, without per-commit
+or per-push approval. Claude Code never pushes; it asks Codex.
+
+Before each push, verify the configured remote, run the project's checks, exclude
+secrets and private material, and coordinate with the active owner. Never force-push
+or delete a remote branch.
+
 ## Documentation
 
 Follow this README order: title/tagline and tests/Python/licence badges; plain description;
