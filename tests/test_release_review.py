@@ -71,8 +71,11 @@ class P0ScheduledAsksKeepTheirDoorsRights(unittest.TestCase):
             self.assertIn("waiting for an answer from the console door", out[0])
             self.assertEqual(fake.sends(), [])
             self.assertIsNotNone(store.open_question("pq"))
-            # the right door, the right answer
+            # the right door, the right answer — and implementation still waits for its yes
+            from ethan import approvals
             router.handle("pq", "1", print, door="console")
+            self.assertEqual(fake.sends(), [])
+            router.handle("pq", f"approve {approvals.pending('pq')[0]['id']}", print, door="console")
             (send,) = fake.sends()
             self.assertEqual(send[send.index("--mode") + 1], "implementation")
 

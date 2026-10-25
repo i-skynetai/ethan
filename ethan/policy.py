@@ -65,10 +65,23 @@ def may_relay(door_name):
     return bool((door(door_name) or {}).get("relay"))
 
 
-def may_build(door_name):
-    """Starting a hand needs a person at a door. The clock, for one, may not."""
+def build_level(door_name):
+    """What a door may do about starting a hand: "allow" (start when asked), "ask"
+    (record the act and wait for 'approve N' from the same door and conversation), or
+    False. A legacy boolean true reads as "ask": a setting is never silently widened.
+    An unknown door is False."""
     d = door(door_name)
-    return bool(d) and bool(d.get("build", True))
+    if not d:
+        return False
+    v = d.get("build", "ask")
+    if v is True:
+        return "ask"
+    return v if v in ("allow", "ask") else False
+
+
+def may_build(door_name):
+    """Whether a door may start a hand at all, with or without a yes first."""
+    return build_level(door_name) is not False
 
 
 def action(name):
@@ -77,19 +90,30 @@ def action(name):
     return level if level in LEVELS else "never"
 
 
+#: The actions that have a confirmation step ("approve N" / "deny N", see approvals.py).
+#: Builds are not here: a door's build level carries its own ask path.
+SUPPORTS_ASK = {"relay_implementation"}
+
+
 def allowed(name):
-    """True unless the policy says never. For acts that cannot be asked for more
-    explicitly than by asking — a reminder, a status, a review-only relay, a watch, the
-    phone, filing to a KB — allow and ask mean the same thing. Only
-    `relay_implementation` reads *ask* differently (see `relay._mode`).
+    """True when the policy says allow, or says ask for an action that has a
+    confirmation step. An action set to ask that has NO confirmation step is refused,
+    not quietly allowed: Ethan would otherwise claim an approval it cannot give.
+    `relay_implementation` is the one action that reads ask as a real step.
 
     Where each is enforced: remind → clock.take and clock.tick; read_ledger →
     status.text; relay_review_only → relay._relay; relay_implementation → relay._mode;
     watch → watch.take and watch.run; phone → reach.tell; file_to_kb → harvest.apply
     and harvest.ingest. send_in_your_name, push_or_merge and start_or_resume_a_session
     have no code path at all; tests/test_policy.py checks that stays true."""
-    return action(name) != "never"
+    level = action(name)
+    if level == "ask":
+        return name in SUPPORTS_ASK
+    return level == "allow"
 
 
 def refusal(name, what):
+    if action(name) == "ask" and name not in SUPPORTS_ASK:
+        return (f"The policy says actions.{name} is 'ask', and Ethan has no confirmation step for "
+                f"{name} yet; set it to allow or never in config/policy.json. Nothing was done.")
     return f"The policy says {what} (actions.{name} is never in config/policy.json)."

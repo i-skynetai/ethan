@@ -26,7 +26,7 @@ new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`
 """
 import itertools, json, os, shutil, subprocess, sys, threading, time
 from .util import cfg, log, state_dir
-from . import identity, store
+from . import identity, redact, store
 from .kb import kb_map_path          # imported by name: `kb` is a parameter here
 
 #: What `sky build` may inherit from Ethan. Listed, not filtered: a filter has
@@ -231,9 +231,11 @@ def run(hand, brief_text, repo=None, review=False, task_id=None, kb=None, kind=N
         lf.close(); store.end_run(run_id, "failed")
         return {"ok": False, "out": f"sky error: {e}", "run_id": run_id}
 
+    output_filter = redact.OutputStream()
     def pump():
         try:
             for line in p.stdout:
+                line = output_filter.feed(line)
                 lf.write(line)
                 tail.append(line)
                 if len(tail) > 4000:
@@ -268,8 +270,15 @@ def run(hand, brief_text, repo=None, review=False, task_id=None, kb=None, kind=N
     lf.close()
 
     out = (summary.get("result_text") or summary.get("reason") or text.strip())[-16000:]
+    out, output_kinds = redact.gate_output(out)
+    output_kinds = sorted(set(output_kinds) | output_filter.kinds)
+    if output_kinds:
+        out = "[Output withheld: detected credential kind(s): " + ", ".join(output_kinds) + "]"
     base = {"run_id": run_id, "sky_run_id": sky_run_id, "sky_dir": sky_dir,
             "outcome": summary.get("outcome"), "usage": summary.get("usage")}
+    if output_kinds:
+        store.end_run(run_id, "failed")
+        return {"run_id": run_id, "ok": False, "out": out}
     if verdict:
         store.end_run(run_id, "timeout")
         return {**base, "ok": False, "out": (out + "\n\n" if out else "") + verdict}

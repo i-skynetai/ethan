@@ -5,6 +5,17 @@ IDs refer to rows in the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
+### Added
+
+- EH-040: approvals. Where the policy says *ask*, Ethan records exactly what it would
+  do and waits for "approve N" or "deny N" from the same door and conversation, within
+  ten minutes; a yes is consumed once, the current policy is checked again at that
+  moment, and nothing pending survives a restart. Doors carry a build level — allow,
+  ask or false; every door asks as shipped — and handing a session implementation
+  rights asks everywhere. An action set to ask that has no confirmation step is
+  refused, not quietly allowed. `approvals.list_pending(chat, door)` gives a display
+  the waiting approvals without their payloads. Every decision is in the ledger.
+
 ### Fixed (release review of 0.2.0)
 
 - A scheduled ask runs with the rights of the door that set it, never more than

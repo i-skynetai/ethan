@@ -22,9 +22,10 @@ Homepage = "https://github.com/i-skynetai/ethan"
 [project.scripts]
 ethan = "ethan.cli:main"
 ethan-service = "ethan.main:main"
+ethan-desktop = "ethan.desktop:main"
 
 [tool.setuptools]
 packages = ["ethan"]
 
 [tool.setuptools.package-data]
-ethan = ["defaults/*.json"]
+ethan = ["defaults/*.json", "windows_speech.ps1", "web/*.html", "web/*.css", "web/*.js"]

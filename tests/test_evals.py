@@ -163,6 +163,28 @@ class NothingWithoutAYes(Scenario):
         self.assertIn("telegram-private door", out[0])
         self.assertEqual(self.bridge.sends(), [])                            # score: 0 sends
 
+    def test_where_the_policy_asks_nothing_starts_until_the_yes_from_the_same_door(self):
+        from ethan import approvals
+        from tests.test_policy import with_policy
+        route = {"kind": "build", "kb": "none", "hand": "claude", "steps": [], "search_query": "", "reason": ""}
+        runs = []
+        # the scenario clock is 2026-10-07; without this the "ask again after a restart" rule
+        # would expire every approval at once (test_approvals covers that rule itself)
+        with mock.patch.object(llm, "ask", return_value=dict(route)), \
+                mock.patch.object(hands, "run", side_effect=lambda *a, **k: runs.append(k) or {"ok": True, "out": "done"}), \
+                with_policy(**{"doors.console.build": "ask"}), mock.patch.object(approvals, "BOOT", 0):
+            out = self.say("write the weekly summary", "ev-approve")
+            self.assertTrue(any(o.startswith("Approval #") for o in out), out)
+            self.assertEqual(runs, [])                                   # score: 0 starts before a yes
+            import re as _re
+            aid = int(_re.search(r"Approval #(\d+)", next(o for o in out if o.startswith("Approval #"))).group(1))
+            self.say(f"approve {aid}", "ev-approve", door="telegram-private")
+            self.assertEqual(runs, [])                                   # another door: still 0
+            self.say(f"approve {aid}", "ev-approve")
+            self.assertEqual(len(runs), 1)                               # the right door: exactly 1
+            self.say(f"approve {aid}", "ev-approve")
+            self.assertEqual(len(runs), 1)                               # replay: still 1
+
     def test_watches_and_plain_relays_are_review_only(self):
         self.say("watch mail through the claude session ethan every day at 09:30: what must I reply to?", "ev-ro")
         self.say("ask the claude session ethan to look at the roadmap", "ev-ro")

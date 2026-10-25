@@ -47,6 +47,69 @@ accepted.
 
 ## Features
 
+### Personal assistant continuation — 2026-10-25
+
+The phased [implementation plan](docs/features/EH-071-personal-assistant.md) preserves
+the Python backend and separates verified integration from presentation. Implemented
+slices and their remaining acceptance checks are recorded below.
+The initial continuation withheld commits and pushes. A separate maintainer request
+on 2026-10-25 authorises the reviewed project commit and normal push; release tags,
+deployment, spending, installs and credential changes remain outside this change.
+
+| ID | Feature | Area | P | Size | Status | Owner |
+|---|---|---|---|---|---|---|
+| EH-071 | Personal assistant phased design and ownership agreement | planning | P1 | L | In progress — planning only | Codex (ethan), 2026-10-25 |
+| EH-072 | Loopback Host and console body/offset validation | trust | P0 | S | In progress — implementation verified, awaiting final review | Codex (coordinator), 2026-10-25 |
+| EH-073 | Durable action approvals at every execution boundary | trust | P1 | L | In review | Claude (ethan), 2026-10-25 |
+| EH-074 | Explicit existing-session conversation through the shared router | integration | P1 | M | In review — offline path verified; live general-chat answer pending | Codex (ethan), 2026-10-25 |
+| EH-075 | [Shared navy/cyan HUD with truthful states and validated saved widget layouts](docs/features/EH-075-hud-design.md) | doors | P1 | L | In progress — authorised substitute reference inspected | Codex (coordinator), 2026-10-25 |
+| EH-076 | Desktop lifecycle around the Python service | distribution | P2 | L | In progress | Codex (ethan), 2026-10-25 |
+| EH-077 | Local voice, push-to-talk, then optional wake word | doors | P2 | L | In progress — local PTT and opt-in wake controls wired and tested; hardware QA pending | Codex (ethan), 2026-10-25 |
+| EH-078 | Durable coordination and source pointers through the canonical ledger | coordination | P1 | M | In review — restart and integrated seam verified | Codex (ethan), 2026-10-25 |
+
+EH-072 owns only `ethan/door_console.py` and `tests/test_console_boundary.py`.
+Acceptance: validate Host against the bound loopback address and port on GET and
+POST; reject transfer encoding and ambiguous lengths; require JSON objects and valid
+string fields; return 400 for malformed or negative cursor parameters. Exercise these
+boundaries through real local HTTP tests, without live provider calls.
+Codex (ethan) independently reviews it and owns only this roadmap and the EH-071 plan
+for now. Claude (ethan) has completed a read-only backend approval audit and confirmed
+availability and accepted backend-only ownership; console/CLI default `ask` has been
+reiterated after its counter-proposal. No UI files
+are owned by the coordinator, including new `ethan/web/` assets and UI tests. The
+original Library materialisation is blocked, but an authorised public substitute
+has been visually inspected: navy HUD, cyan/white core, orbit ticks and mono labels.
+
+EH-076/077 progress: optional installed Edge/Chrome app-mode launcher, local Windows
+speech helper, explicit microphone start/stop/cancel/mute, preview-only transcripts
+and opt-in global Ctrl+Alt+Space PTT. Host capability discovery verified one local
+en-US recognizer and two local voices, with no audio captured. Thirteen focused tests
+and Ruff pass. Manual browser/microphone/global-hotkey checks remain; wake word is
+not implemented. No new dependencies installed. The host interpreter lacks
+`setuptools`, so wheel building remains unverified under the no-install restriction.
+See [desktop use](docs/desktop.md).
+
+EH-078 preserves goals, constraints, decisions, ownership, status and source pointers
+in the existing ledger, not an additional knowledge engine. Claude/Codex retrieve and
+reason over selected project sources through separately supplied adapters. No bulk
+mail/chat ingestion or new retrieval/vector/graph engine. Current module tests cover
+restart continuity, project/chat/privacy isolation, secret refusal and nonexecuting
+audit snapshots; router/brief hooks remain Claude-owned and await integration review.
+
+EH-072 review evidence, 2026-10-25: initial patch passed all 189 tests (2 skipped),
+Ruff and the shared docs checker (24 pass, 0 warn, 0 fail). Independent HTTP review
+found blank/duplicate-empty cursor values bypassing validation. After correction,
+all six boundary tests passed again; `git diff --check` is clean. Valid CLI-style
+requests still dispatch. No live provider inference was used for these checks.
+
+EH-075 dynamic layout slice: `ethan/layouts.py` registers six typed cards with stable
+IDs and a bounded versioned schema. Core and conversation stay mandatory. Optional
+cards can be added, reordered, resized and titled through a validated preview before
+explicit application. Revisions and chat/door/expiry-bound previews live in the same
+SQLite ledger; stale/replayed applications are refused and rollback validates the
+previous revision. Ten isolated tests and Ruff pass; HUD/API integration remains
+with the coordinator and the non-scheduled router hook with Claude (ethan).
+
 ### Personal assistant console
 
 | ID | Feature | Area | P | Size | Status | Owner |
@@ -261,7 +324,7 @@ on:* EH-059.
 
 | ID | Feature | Area | P | Size | Status | Owner |
 |---|---|---|---|---|---|---|
-| EH-040 | [Approvals through the door you used](#eh-040) | loop | P2 | L | Needs decision | |
+| EH-040 | [Approvals through the door you used](#eh-040) | loop | P2 | L | In review | Claude (ethan), 2026-10-25 |
 | EH-041 | [Progress while a run is live](#eh-041) | loop | P2 | M | Proposed | |
 | EH-042 | [A console token](#eh-042) | doors | P2 | S | Ready | |
 | EH-043 | [Recurring asks](#eh-043) | loop | P3 | L | Needs decision | |

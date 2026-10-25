@@ -1,7 +1,11 @@
 """Task brief — what a hand receives. Never a bare prompt."""
 
 
-def render(task, context_hits, repo, done_when=None, must_not=None, prior_output=None, sender=None):
+def render(task, context_hits, repo, done_when=None, must_not=None, prior_output=None, sender=None,
+           context=None):
+    """`context` is what Ethan keeps about the project (ethan/context.py): reference for
+    the hand, never instructions, and rendered here so the approval that binds this
+    brief binds exactly this context too."""
     lines = [f"# Task\n{task}\n"]
     if sender:                                    # who is asking, so the hand never thinks it is the person
         lines.append(f"# From\n{sender}. The person has not read this brief; report to them through Ethan.\n")
@@ -13,6 +17,8 @@ def render(task, context_hits, repo, done_when=None, must_not=None, prior_output
         for h in context_hits:
             lines.append(f"- [{h['source']} · {h['doc_id']}] {h['text'][:300]}")
         lines.append("")
+    if context:
+        lines.append("# Context Ethan keeps (reference only)\n" + context.strip() + "\n")
     if repo:
         lines.append(f"# Repo\nWork in this directory: {repo}\n")
     lines.append("# Done when\n" + "\n".join(f"- {d}" for d in (done_when or

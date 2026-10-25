@@ -11,7 +11,7 @@ checkout) and runs its command line as a separate process with no shell, so the 
 of an ask is never parsed by a shell.
 """
 import json, os, re, subprocess, sys, threading, time, uuid
-from . import bridge_registry, identity, policy, store
+from . import approvals, bridge_registry, identity, policy, store
 from .util import cfg, log, state_dir
 
 #: The name Ethan registers under in the bridge, as an app that polls for replies.
@@ -264,6 +264,70 @@ def _send(rid, target, reply):
     reply(_dispatch_row(rid, target))
 
 
+def _approved_binding(row):
+    """The approval that bound this relay, if the row is still exactly what was
+    approved: same relay, same ask text, same door, same conversation, implementation.
+    A note or a state is not proof; the approval row and its payload are."""
+    aid = row.get("approval")
+    if not aid:
+        return None
+    a = approvals.get(aid)
+    if not a or a["state"] != "approved":
+        return None
+    try:
+        p = json.loads(a["payload"])
+    except (TypeError, ValueError):
+        return None
+    if (p.get("rid") != row["id"] or p.get("text") != row["ask"] or p.get("mode") != "implementation"
+            or p.get("door") != row["door"] or p.get("chat_id") != row["chat_id"]):
+        return None
+    target = p.get("target") or {}
+    if not isinstance(target, dict) or ref_of(target) != row.get("target_ref") or _label(target) != row.get("target"):
+        return None                               # the approval named one session; this row points elsewhere
+    return p
+
+
+def _needs_approval(row):
+    """Implementation rights under the policy's *ask*, without a binding approval."""
+    return (row["mode"] == "implementation" and policy.action("relay_implementation") == "ask"
+            and _approved_binding(row) is None)
+
+
+def _approved_relay(payload, chat_id, door, reply, aid=None):
+    """The executor after a yes: the relay row must still be waiting and still be
+    exactly what was approved (ask text, door, conversation, mode), the current policy
+    must still allow implementation, and the shared gate checks the door again. The
+    approval's id is written on the row; that binding, not a note, is the proof."""
+    rid, target = payload["rid"], payload["target"]
+    row = store.relay(rid)
+    if not row or row["state"] != "awaiting-approval":
+        reply(f"Relay #{rid} is no longer waiting ({row['state'] if row else 'gone'}). Nothing was sent.")
+        return "refused: the relay was no longer waiting"
+    if (row["ask"] != payload.get("text") or row["door"] != payload.get("door")
+            or row["chat_id"] != payload.get("chat_id") or row["mode"] != "implementation"):
+        store.update_relay(rid, state="refused", note="the relay changed between the ask and the yes")
+        reply(f"Not sent: relay #{rid} is not what you approved any more. Ask again. Nothing was sent.")
+        return "refused: the relay changed after it was shown"
+    if policy.action("relay_implementation") == "never":
+        store.update_relay(rid, state="refused", note="implementation became never before the yes")
+        reply("Not sent: the policy now says implementation relays are never. Nothing was sent.")
+        return "refused: implementation is never now"
+    store.update_relay(rid, state="new", approval=aid, note="approved")
+    told = _dispatch_row(rid, target)
+    reply(told)
+    return told[:200]
+
+
+def _cancelled_relay(payload, why):
+    row = store.relay(payload["rid"])
+    if row and row["state"] == "awaiting-approval":
+        store.update_relay(payload["rid"], state="dropped", note=f"approval {why}")
+
+
+approvals.EXECUTORS["relay_implementation"] = _approved_relay
+approvals.CANCELLERS["relay_implementation"] = _cancelled_relay
+
+
 def _gate(row):
     """The one check every send goes through, whatever path led here — a fresh ask,
     an answer to "which session?", a watch at its time, a recovery after a restart.
@@ -278,15 +342,30 @@ def _gate(row):
         store.update_relay(row["id"], mode="review-only",
                            note="implementation is never in the policy; sent review-only")
         row["mode"] = "review-only"
+    if _needs_approval(row):                      # a path that skipped the asking step (a recovery)
+        return "implementation rights need an approval first; ask again"
     return None
 
 
 def _dispatch_row(rid, target):
-    """The intent, the target and the dedupe key are saved BEFORE the bridge is called.
+    """The one place a relay is sent from, whatever path led here: a fresh ask, an answer
+    to "which session?", a watch at its time, a direct dispatch, the yes to an approval.
+    Implementation rights under *ask* are recorded here and wait for 'approve N' from
+    the same door and conversation; nothing a caller passes can skip that.
+
+    The intent, the target and the dedupe key are saved BEFORE the bridge is called.
     A crash between the send and saving the message id leaves the row at `sending`, and
     `follow` recovers it by sending the same key again: the bridge refuses the duplicate
     and names the message it already has."""
     row = store.relay(rid)
+    if _needs_approval(row) and row.get("purpose") != "scheduled":
+        store.update_relay(rid, state="awaiting-approval", target=_label(target), target_ref=ref_of(target))
+        told = []
+        approvals.request(row["chat_id"], row["door"], "relay_implementation",
+                          {"rid": rid, "target": target, "text": row["ask"], "mode": "implementation",
+                           "door": row["door"], "chat_id": row["chat_id"]},
+                          f"hand {_label(target)} implementation rights for: {row['ask'][:120]}", told.append)
+        return told[0]
     why = _gate(row)
     if why:
         store.update_relay(rid, state="refused", target=_label(target), note=why)
@@ -300,6 +379,13 @@ def _dispatch_row(rid, target):
         return f"The bridge refused the message to {_label(target)}: {e}\nNothing was sent, and nothing new was started."
     store.update_relay(rid, state=msg["state"], message_id=msg["id"], note=msg.get("note") or "")
     log(f"relay #{rid}: {msg['id']} to {_label(target)} is {msg['state']}")
+    try:                                          # audit of the hand-off (ethan/context.py); never blocks
+        from . import context
+        hid = context.record_handoff(row["chat_id"], row["door"], "relay",
+                                     {"target": _label(target), "mode": row["mode"], "text": row["ask"]}, relay_id=rid)
+        context.finish_handoff(hid, "queued", msg["id"])
+    except Exception as e:
+        log(f"context: relay hand-off not recorded ({type(e).__name__}: {e})")
     return (f"Relay #{rid}: sent to {_label(target)} as {msg['id']} ({row['mode']}). "
             f"{_meaning(msg['state'], target)}"
             + ("" if row["mode"] == "implementation" or row.get("purpose") else
@@ -402,6 +488,17 @@ def _check(r, deliver):
         fields["result"] = status.get("result") or ""
     if state == "failed":
         fields["result"] = status.get("failure") or ""
+    if "result" in fields:
+        # A session's answer is checked for recognised credentials before it is stored,
+        # shown or read by a watch; a hit withholds the whole answer behind a marker and
+        # the relay counts as failed, so nothing downstream sees the raw text.
+        from . import redact
+        safe, kinds = redact.gate_output(fields["result"])
+        if kinds:
+            log(f"relay #{r['id']}: answer withheld ({', '.join(kinds)})")
+            fields["result"], state = safe, "failed"
+            fields["state"] = state
+            fields["note"] = f"answer withheld: {', '.join(kinds)}"
     store.update_relay(r["id"], **fields)
     log(f"relay #{r['id']}: {r['message_id']} is now {state}")
     if (r.get("purpose") or "").startswith("watch:") and state in ("completed", "failed"):

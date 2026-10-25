@@ -1,6 +1,7 @@
 """SQLite task store + per-chat conversation memory."""
 import atexit, os, shutil, sqlite3, threading, time
 from .util import state_dir, log
+from . import redact
 
 _LOCK = threading.RLock()                     # re-entrant: a writer may call a reader
 _DB = None
@@ -64,7 +65,10 @@ def db():
         _DB.execute("""CREATE TABLE IF NOT EXISTS relays(
             id INTEGER PRIMARY KEY, ts REAL, chat_id TEXT, door TEXT, ask TEXT, mode TEXT,
             candidates TEXT, target TEXT, target_ref TEXT, bridge_key TEXT, message_id TEXT,
-            state TEXT, note TEXT, result TEXT, updated REAL, purpose TEXT)""")
+            state TEXT, note TEXT, result TEXT, updated REAL, purpose TEXT, approval INTEGER)""")
+        # the approval that bound an implementation relay — added after 0.2.0
+        if "approval" not in [r[1] for r in _DB.execute("PRAGMA table_info(relays)")]:
+            _DB.execute("ALTER TABLE relays ADD COLUMN approval INTEGER")
         _DB.commit()
     return _DB
 
@@ -92,12 +96,16 @@ def add_task(chat_id, kind, kb, hand, ask, door=None):
 
 
 def finish_task(task_id, state, result):
+    result, kinds = redact.gate_output(result)
+    if kinds:
+        state = "failed"
     with _LOCK:
         db().execute("UPDATE tasks SET state=?, result=? WHERE id=?", (state, result[:20000], task_id))
         db().commit()
 
 
 def remember(chat_id, role, text):
+    text, _ = redact.gate_output(text)
     with _LOCK:
         db().execute("INSERT INTO messages(ts,chat_id,role,text) VALUES(?,?,?,?)",
                      (time.time(), str(chat_id), role, text[:4000]))
@@ -186,6 +194,7 @@ def recent_harvests(n=25):
 
 # ── pull-based replies (the console polls; Telegram pushes) ─────────────────
 def add_reply(chat_id, text):
+    text, _ = redact.gate_output(text)
     with _LOCK:
         db().execute("INSERT INTO replies(ts,chat_id,text) VALUES(?,?,?)",
                      (time.time(), str(chat_id), text))
@@ -219,7 +228,7 @@ def last_desktop():
 
 # ── relays to running sessions ──────────────────────────────────────────────
 _RELAY_COLS = ("id,ts,chat_id,door,ask,mode,candidates,target,target_ref,bridge_key,message_id,"
-               "state,note,result,updated,purpose")
+               "state,note,result,updated,purpose,approval")
 
 
 def add_relay(chat_id, door, ask, mode, candidates=None, purpose=None):
@@ -237,10 +246,15 @@ def add_relay(chat_id, door, ask, mode, candidates=None, purpose=None):
         return cur.lastrowid
 
 
-_RELAY_FIELDS = {"state", "target", "target_ref", "bridge_key", "message_id", "note", "result", "purpose", "mode"}
+_RELAY_FIELDS = {"state", "target", "target_ref", "bridge_key", "message_id", "note", "result", "purpose", "mode", "approval"}
 
 
 def update_relay(relay_id, **fields):
+    for key in ("result", "note"):
+        if fields.get(key):
+            fields[key], kinds = redact.gate_output(fields[key])
+            if kinds and key == "result":
+                fields["state"] = "failed"
     bad = set(fields) - _RELAY_FIELDS
     if bad:
         raise ValueError(f"not a relay field: {sorted(bad)}")

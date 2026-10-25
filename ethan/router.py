@@ -1,6 +1,11 @@
 """The router — hint first, model only when the hint cannot decide; pick kb, pull context, brief, delegate, report."""
+import json
 import re
-from . import kb, brief, clock, hands, harvest, identity, llm, policy, relay, status, store, todo, watch
+from . import approvals, kb, brief, clock, context, hands, harvest, identity, llm, policy, redact, relay, status, store, todo, watch
+try:                                              # the HUD layout module is optional until it lands
+    from . import layouts
+except ImportError:                               # pragma: no cover
+    layouts = None
 from .util import log
 from .character import VOICE
 
@@ -103,7 +108,7 @@ def _model_route(text, bmap, choices, has_prior):
 CLOSE_OUT = ("Session can close", "Not closing")
 
 
-def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=False):
+def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=False, chat_provider_ref=None):
     """Process one ask. reply(str) sends back through the originating door.
 
     cwd, when given, is where the CALLER is working. It wins over the kb's
@@ -117,29 +122,58 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=Fa
     scheduled: the clock is running this ask at a time the person set. It keeps the
     rights of the door the person used, minus what the clock may not do: start a hand,
     or hand a session implementation rights.
+
+    chat_provider_ref: an explicit "agent:native_id" the person selected to talk to.
+    Rules run first; whatever they do not handle goes to that session as a review-only
+    relay, with no model classification. An invalid selection refuses, with no fallback.
+
+    An ask that carries what looks like a credential (ethan/redact.py's recognised
+    patterns, nothing more) is refused before anything is stored, routed or sent, and
+    the value is never echoed. Detection is only as wide as those patterns.
     """
     closed = []
     def send(msg):
+        # Every line that leaves through a door passes the output gate: a model answer,
+        # an error text or anything else carrying a recognised credential is withheld
+        # whole behind an explicit marker. Persistence has its own gate in store.
+        safe, kinds = redact.gate_output(msg)
+        if kinds:
+            log(f"reply withheld ({', '.join(kinds)})")
+            msg = safe
         if msg.startswith(CLOSE_OUT):
             if closed:
                 return
             closed.append(msg)
         reply(msg)
-    try:
-        _handle(chat_id, text, send, door, cwd, scheduled)
-    except Exception as e:                      # a bad ask must still be answered
-        log(f"ask failed: {type(e).__name__}: {e}")
-        send(f"error: {e}")
+    kinds = redact.find(text)
+    if kinds:
+        send(f"Refused: this ask contains what looks like a credential ({', '.join(kinds)}). "
+             "Nothing was stored, routed, scheduled or sent. Remove it and ask again.")
+        log(f"ask refused: recognised secret ({', '.join(kinds)}) in the text")
+    else:
+        try:
+            _handle(chat_id, text, send, door, cwd, scheduled, chat_provider_ref)
+        except Exception as e:                  # a bad ask must still be answered
+            log(f"ask failed: {type(e).__name__}: {e}")
+            send(f"error: {e}")
     if not closed:
         ok, why = harvest.can_close(chat_id)
         send(f"Session can close — {why}." if ok else f"Not closing — {why}.")
 
 
-def _handle(chat_id, text, reply, door, cwd, scheduled=False):
+
+
+def _handle(chat_id, text, reply, door, cwd, scheduled=False, chat_provider_ref=None):
     history = store.recent(chat_id)              # read before this ask is stored
     store.remember(chat_id, "user", text)        # stored once, whatever the door
     # Passing an ask to a session that is already running is decided before any
     # routing: it must never fall through to a build, which would start a new one.
+    if approvals.take(chat_id, text, reply, door, scheduled=scheduled):   # "approve 7" / "deny 7"
+        return
+    if not scheduled and context.take(chat_id, text, reply, door):   # "remember context {…}" / "recall context {…}"
+        return
+    if not scheduled and layouts is not None and layouts.take(chat_id, text, reply, door):   # HUD layout commands
+        return
     if relay.take(chat_id, text, reply, door, cwd, scheduled=scheduled):
         return
     if watch.take(chat_id, text, reply, door):   # "watch mail through … every weekday at …: …"
@@ -151,6 +185,20 @@ def _handle(chat_id, text, reply, door, cwd, scheduled=False):
     if status.wants(text):                       # "what is running?" is a rule, not a model call
         reply(status.text())
         return
+    if chat_provider_ref:
+        # The person chose whom to talk to. No model decides anything: the ask goes to
+        # that session as a review-only relay, through the same gate as every send.
+        if scheduled:
+            reply("A scheduled run cannot talk to a selected session. Nothing was sent.")
+            return
+        from . import providers
+        try:
+            target = providers.resolve(chat_provider_ref)
+        except providers.SelectionError as e:
+            reply(f"No session selected: {e}. Nothing was sent, and nothing was started.")
+            return
+        reply(relay.dispatch(chat_id, door, target, text, "review-only", purpose="chat"))
+        return
     bmap = kb.kb_map()
     hinted, hinted_hand = _hint_kbs(text), _hint_hand(text)
     hinted_kind = _hint_kind(text)
@@ -161,6 +209,14 @@ def _handle(chat_id, text, reply, door, cwd, scheduled=False):
                  "steps": [], "search_query": text, "reason": "hint", "by": "hint"}
     else:
         route = _model_route(text, bmap, hinted, bool(store.last_result(chat_id)))
+        _, kinds = redact.gate_output(json.dumps(route, default=str))
+        if kinds:
+            # A route carrying a credential (in a step goal, a search query, anywhere)
+            # never becomes a log line, an approval, a task or a hand's brief.
+            log(f"route withheld ({', '.join(kinds)})")
+            reply(f"Not routed: the model's plan for this ask contained what looks like a "
+                  f"credential ({', '.join(kinds)}). Nothing was logged, scheduled or started.")
+            return
         route["by"] = "model"
         if len(hinted) == 1:
             route["kb"] = hinted[0]              # the kind was unclear; the KB was not
@@ -233,40 +289,129 @@ def _handle(chat_id, text, reply, door, cwd, scheduled=False):
         reply(out)
         return
 
+    ctx = _context_for(chat_id, kb_name, workdir, door)
     if kind == "chain" and route.get("steps"):
-        prior, task_id = None, None
-        for i, step in enumerate(route["steps"], 1):
-            h, goal = step["hand"], step["goal"]
-            task_id = store.add_task(chat_id, f"chain:{i}", kb_name, h, goal, door)
-            short = goal.split(".")[0][:150]
-            reply(f"Step {i}/{len(route['steps'])} — {h}: {short}…")
-            btxt = brief.render(f"{goal}\n\n(Original ask: {text})", hits, workdir,
-                                prior_output=prior, sender=identity.stamp(door))
-            step_kind = step.get("kind") or "review"   # unknown → the role that cannot edit
-            res = hands.run(h, btxt, workdir, review=(step_kind == "review"),
-                            task_id=task_id, kb=kb_name, kind=step_kind)
-            store.finish_task(task_id, "done" if res["ok"] else "failed", res["out"])
-            if not res["ok"]:
-                reply(f"Step {i} FAILED ({h}): {res['out'][-1500:]}")
-                return
-            prior = res["out"]
-            reply(f"Step {i} done ({h}).")
-        store.remember(chat_id, "assistant", prior[:1500])
-        reply(f"Chain complete:\n{prior[-3000:]}")
-        # the last hand in the chain saw the most context, so it does the close-out
-        _close_out(route["steps"][-1]["hand"], prior, workdir, door, chat_id, reply,
-                   task_id, kb_name)
+        payload = {"steps": route["steps"], "kb": kb_name, "workdir": workdir, "text": text, "hits": hits,
+                   "context": ctx}
+        if policy.build_level(door) == "ask":
+            names = " then ".join(f"{s['hand']} ({s.get('kind') or 'review'})" for s in route["steps"])
+            approvals.request(chat_id, door, "chain", payload,
+                              f"run {len(route['steps'])} steps in {workdir or '(no repo)'}: {names}, for: {text[:120]}",
+                              reply)
+            return
+        _run_chain(payload, chat_id, door, reply)
         return
 
     # build / review → delegate to a hand
     hand = route["hand"] if route["hand"] not in ("auto", "none") else ("codex" if kind == "review" else "claude")
-    task_id = store.add_task(chat_id, kind, kb_name, hand, text, door)
+    btxt = brief.render(text, hits, workdir, sender=identity.stamp(door), context=ctx)
+    payload = {"hand": hand, "kind": kind, "kb": kb_name, "workdir": workdir, "text": text, "brief": btxt}
+    if policy.build_level(door) == "ask":
+        role = "reviewer" if kind == "review" else "developer"
+        approvals.request(chat_id, door, "build", payload,
+                          f"start {hand} as {role} in {workdir or '(no repo)'} for: {text[:120]}", reply)
+        return
+    _launch(payload, chat_id, door, reply)
+
+
+def _context_for(chat_id, kb_name, workdir, door):
+    """What Ethan keeps about this project, for the brief. A failure here is logged
+    and gives no context; it never stops an ask."""
+    try:
+        return context.for_brief(chat_id, kb_name, workdir, door)
+    except Exception as e:
+        log(f"context: unavailable ({type(e).__name__}: {e})")
+        return None
+
+
+def _handoff(chat_id, door, kind, payload, **ids):
+    """Audit row for a hand-off (ethan/context.py). Never blocks the hand-off."""
+    try:
+        return context.record_handoff(chat_id, door, kind, payload, **ids)
+    except Exception as e:
+        log(f"context: handoff not recorded ({type(e).__name__}: {e})")
+        return None
+
+
+def _handoff_done(hid, state, result):
+    if hid is None:
+        return
+    try:
+        context.finish_handoff(hid, state, result)
+    except Exception as e:
+        log(f"context: handoff outcome not recorded ({type(e).__name__}: {e})")
+
+
+def _gate_output(res, what):
+    """A hand's output is checked for recognised credentials (ethan/redact.py's
+    patterns, nothing wider) before it is stored, shown, harvested or handed to the next
+    step. A hit withholds the WHOLE output behind an explicit marker and fails the
+    task: nothing downstream ever sees the raw text."""
+    safe, kinds = redact.gate_output(res.get("out") or "")
+    if kinds:
+        log(f"{what}: output withheld ({', '.join(kinds)})")
+        return {**res, "ok": False, "out": safe, "withheld": kinds}
+    return res
+
+
+def _launch(p, chat_id, door, reply):
+    """Start one hand with exactly the brief that was shown. Used directly when the door
+    may build without asking, and by the approval executor after a yes."""
+    hand, kind, kb_name, workdir = p["hand"], p["kind"], p["kb"], p["workdir"]
+    task_id = store.add_task(chat_id, kind, kb_name, hand, p["text"], door)
+    hid = _handoff(chat_id, door, kind, p, task_id=task_id)
     reply(f"Task #{task_id}: delegating to {hand} in {workdir or '(no repo)'} — I'll report back.")
-    btxt = brief.render(text, hits, workdir, sender=identity.stamp(door))
-    res = hands.run(hand, btxt, workdir, review=(kind == "review"), task_id=task_id,
+    res = hands.run(hand, p["brief"], workdir, review=(kind == "review"), task_id=task_id,
                     kb=kb_name, kind=kind)
+    res = _gate_output(res, f"task #{task_id}")
     store.finish_task(task_id, "done" if res["ok"] else "failed", res["out"])
+    _handoff_done(hid, "completed" if res["ok"] else "failed", res["out"])
     store.remember(chat_id, "assistant", res["out"][:1500])
     reply(f"Task #{task_id} {'done' if res['ok'] else 'FAILED'} ({hand}):\n{res['out'][-3000:]}")
     if res["ok"]:                                # failed work has nothing to harvest
         _close_out(hand, res["out"], workdir, door, chat_id, reply, task_id, kb_name)
+    return f"task #{task_id} {'done' if res['ok'] else 'failed'}"
+
+
+def _run_chain(p, chat_id, door, reply):
+    steps, kb_name, workdir, text, hits = p["steps"], p["kb"], p["workdir"], p["text"], p["hits"]
+    prior, task_id = None, None
+    for i, step in enumerate(steps, 1):
+        h, goal = step["hand"], step["goal"]
+        task_id = store.add_task(chat_id, f"chain:{i}", kb_name, h, goal, door)
+        short = goal.split(".")[0][:150]
+        reply(f"Step {i}/{len(steps)} — {h}: {short}…")
+        btxt = brief.render(f"{goal}\n\n(Original ask: {text})", hits, workdir,
+                            prior_output=prior, sender=identity.stamp(door), context=p.get("context"))
+        step_kind = step.get("kind") or "review"   # unknown → the role that cannot edit
+        hid = _handoff(chat_id, door, "chain", {**step, "workdir": workdir, "hand": h, "brief": btxt}, task_id=task_id)
+        res = hands.run(h, btxt, workdir, review=(step_kind == "review"),
+                        task_id=task_id, kb=kb_name, kind=step_kind)
+        res = _gate_output(res, f"chain step {i}")  # a withheld step fails, and the chain stops here
+        store.finish_task(task_id, "done" if res["ok"] else "failed", res["out"])
+        _handoff_done(hid, "completed" if res["ok"] else "failed", res["out"])
+        if not res["ok"]:
+            reply(f"Step {i} FAILED ({h}): {res['out'][-1500:]}")
+            return f"step {i} failed"
+        prior = res["out"]
+        reply(f"Step {i} done ({h}).")
+    store.remember(chat_id, "assistant", prior[:1500])
+    reply(f"Chain complete:\n{prior[-3000:]}")
+    # the last hand in the chain saw the most context, so it does the close-out
+    _close_out(steps[-1]["hand"], prior, workdir, door, chat_id, reply, task_id, kb_name)
+    return "chain complete"
+
+
+def _approved(run):
+    """The executor for a build or a chain: the CURRENT policy is checked again at the
+    moment of the yes, then the act runs with the payload that was approved."""
+    def execute(payload, chat_id, door, reply, **_):
+        if not policy.may_build(door):
+            reply(f"Not started: the {door} door may not start a build now; the policy changed since you were asked.")
+            return "refused: the door may not build now"
+        return run(payload, chat_id, door, reply)
+    return execute
+
+
+approvals.EXECUTORS["build"] = _approved(_launch)
+approvals.EXECUTORS["chain"] = _approved(_run_chain)

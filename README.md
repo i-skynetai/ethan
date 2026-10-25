@@ -25,10 +25,9 @@ can trust. It does not rebuild what the agents already do well: reading your mai
 tickets through their own connectors, summarising, drafting, writing code.
 
 It is built for one person first — real benefit from AI in a working day, with no new
-service to pay for or trust — and for teams after that. Provider-neutral, with its
-rules, identity and ledger in the open, it is a small, honest way for an organisation to
-make everyday AI use effective and accountable. The [vision](docs/vision.md) says where
-it is going.
+service to pay for or trust — and for teams after that: provider-neutral, with its rules,
+identity and ledger in the open, so everyday AI use is effective and accountable. The
+[vision](docs/vision.md) says where it is going.
 
 ## Words you need
 
@@ -51,9 +50,9 @@ cd ethan
 ./run.sh --demo
 ```
 
-The demo runs one ask through routing, launch, close-out and the ledger on a sample shop
-in a temporary folder. Only the hand is faked: `demo/fake-sky` prints a fixed
-review. Its real output:
+One ask on a sample shop in a temporary folder: routing, approval, launch, close-out,
+ledger. Ethan asks before starting a hand, like every door; the demo types `approve 1`
+itself. Only the hand is faked: `demo/fake-sky` prints a fixed review. The output:
 
 ![The real output of ./run.sh --demo: a hinted ask routed with no model call, launched as a reviewer, a note kept, the session closed](docs/images/demo.png)
 
@@ -105,7 +104,7 @@ scans for secrets first. See [Architecture](docs/architecture.md).
 
 ## Status
 
-Version 0.2.0. 183 tests, standard library only, CI on Python 3.11 to 3.13:
+Version 0.2.0. 295 tests, standard library only, CI on Python 3.11 to 3.13:
 `python3 -m unittest discover -s tests -t .`. The real hand path has been tested only
 with a fake `sky`. Changes: the [changelog](CHANGELOG.md).
 

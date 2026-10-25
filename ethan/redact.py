@@ -22,6 +22,7 @@ PATTERNS = [
     ("telegram-token",  re.compile(r"\b\d{8,10}:[A-Za-z0-9_\-]{30,}")),
     ("jwt",             re.compile(r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}")),
     ("private-key",     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----")),
+    ("private-key",     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("bearer",          re.compile(r"(?i)\bbearer\s+[A-Za-z0-9_\-\.=]{16,}")),
     # last resort: an assignment whose name says secret. Deliberately broad; a
     # false positive costs a redacted string, a false negative costs a leak.
@@ -58,4 +59,34 @@ def find(text):
     for label, rx in PATTERNS:
         if rx.search(text):
             out.append(label)
-    return out
+    return sorted(set(out))
+
+
+def gate_output(text):
+    """Withhold an entire detected output, reporting kinds without secret values."""
+    kinds = find(text)
+    if kinds:
+        return "[Output withheld: detected credential kind(s): " + ", ".join(kinds) + "]", kinds
+    return text, []
+
+
+class OutputStream:
+    """Filter line-delimited stdout; private-key bodies never reach logs or tails.
+
+    An unfinished private-key block remains suppressed until EOF. This is pattern
+    detection, not a guarantee that arbitrary output contains no credential.
+    """
+    def __init__(self):
+        self.private = False
+        self.kinds = set()
+
+    def feed(self, line):
+        begin = re.search(r"-----BEGIN [A-Z ]*PRIVATE KEY-----", line)
+        if self.private or begin:
+            self.kinds.add("private-key")
+            for boundary in re.finditer(r"-----(BEGIN|END) [A-Z ]*PRIVATE KEY-----", line):
+                self.private = boundary.group(1) == "BEGIN"
+            return gate_output("-----BEGIN PRIVATE KEY-----")[0] + "\n" if begin else ""
+        safe, kinds = gate_output(line)
+        self.kinds.update(kinds)
+        return safe + ("\n" if kinds else "")

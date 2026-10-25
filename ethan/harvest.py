@@ -6,7 +6,7 @@ decision against policy, perform the write itself (so a hand never holds a token
 and refuse out loud rather than silently.
 """
 import json, re
-from . import kb, hands, policy, redact, store
+from . import approvals, kb, hands, policy, redact, store
 from .util import cfg, log
 
 MAX_BODY = 20000          # a knowledge note, not a transcript dump
@@ -177,9 +177,13 @@ def can_close(chat_id=None):
     the session has not answered is outstanding, even though no hand is running."""
     pend = store.pending(chat_id)
     relays = store.open_relays(chat_id)
-    if not pend and not relays:
+    waiting = approvals.pending(chat_id)
+    if not pend and not relays and not waiting:
         return True, "nothing pending"
     parts = []
+    if waiting:
+        ids = ", ".join(f"#{a['id']}" for a in waiting[:5])
+        parts.append(f"{len(waiting)} approval(s) waiting: {ids} — reply 'approve N' or 'deny N'")
     if pend:
         what = "; ".join(f"#{p['id']} {p['kind']}/{p['hand']}" for p in pend[:5])
         more = f" (+{len(pend) - 5} more)" if len(pend) > 5 else ""

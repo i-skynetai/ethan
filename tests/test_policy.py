@@ -108,6 +108,8 @@ class EveryNeverAndEveryAsk(unittest.TestCase):
                 mock.patch.object(relay, "_bridge", FakeBridge()) as fake, mock.patch.object(relay, "_REGISTERED", []):
             router.handle("p-impl", "tell the codex session codex-ethan to look at EH-1", print, door="console")
             router.handle("p-impl", "tell the codex session codex-ethan to implement EH-1", print, door="console")
+            from ethan import approvals
+            router.handle("p-impl", f"approve {approvals.pending('p-impl')[0]['id']}", print, door="console")
             modes = [s[s.index("--mode") + 1] for s in fake.sends()]
             self.assertEqual(modes, ["review-only", "implementation"])
             with with_policy(**{"actions.relay_implementation": "never"}):
@@ -248,6 +250,27 @@ class EveryActionAtItsEffect(unittest.TestCase):
                 router.handle("g-impl", "tell the codex session codex-ethan to implement EH-1", out.append, door="console")
             (send,) = fake.sends()
             self.assertEqual(send[send.index("--mode") + 1], "review-only")
+
+    def test_ask_on_an_action_without_a_confirmation_step_fails_closed(self):
+        """Required by the coordinator: 'ask' is a real step only where one exists.
+        Elsewhere it is refused and named, never quietly allowed."""
+        from ethan import clock, door_telegram, reach, status
+        for name in ("remind", "read_ledger", "relay_review_only", "watch", "phone", "file_to_kb"):
+            with with_policy(**{f"actions.{name}": "ask"}):
+                self.assertFalse(policy.allowed(name), name)
+                self.assertIn("no confirmation step", policy.refusal(name, "x"))
+        self.assertTrue(policy.action("relay_implementation") == "ask" and "relay_implementation" in policy.SUPPORTS_ASK)
+        with with_policy(**{"actions.phone": "ask"}), \
+                mock.patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_ALLOWED_USER_IDS": "1"}), \
+                mock.patch.object(door_telegram, "send", side_effect=AssertionError("sent despite ask")):
+            self.assertEqual(reach.tell("ask-phone", "console", "URGENT: look"), ["conversation"])
+        with with_policy(**{"actions.remind": "ask"}):
+            out = []
+            clock.take("ask-remind", "remind me in 5 minutes to stretch", out.append, "console")
+            self.assertIn("no confirmation step", out[0])
+            self.assertEqual(clock.scheduled("ask-remind"), [])
+        with with_policy(**{"actions.read_ledger": "ask"}):
+            self.assertIn("no confirmation step", status.text())
 
     def test_the_three_promises_have_no_code_path(self):
         from ethan import brief

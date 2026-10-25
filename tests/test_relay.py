@@ -92,8 +92,11 @@ class OneTarget(unittest.TestCase):
         self.assertEqual((r["state"], r["message_id"], r["target"]), ("queued", "m_2", "codex:codex-ethan"))
 
     def test_implement_hands_over_ownership(self):
+        from ethan import approvals
         with bridge() as fake:
             ask("tell the codex session to implement EH-023", "one-impl")
+            self.assertEqual(fake.sends(), [])                      # implementation waits for a yes
+            ask(f"approve {approvals.pending('one-impl')[0]['id']}", "one-impl")
         (send,) = fake.sends()
         self.assertEqual(send[send.index("--mode") + 1], "implementation")
 

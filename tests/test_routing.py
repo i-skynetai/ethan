@@ -41,16 +41,28 @@ class Stub:
 
 
 @contextlib.contextmanager
-def stubbed(route=None):
+def stubbed(route=None, console_build="allow"):
+    """A stub model and a stub hand. The console door is configured to start a hand when
+    asked (an explicit allow) because these tests exercise the launch itself; the
+    approval step that the shipped default ("ask") adds is tested in test_approvals."""
+    from unittest import mock
+    from ethan import policy, util
     stub = Stub(route)
     saved = (kb._MAP, llm.ask, hands.run, kb.search, harvest.run)
     kb._MAP = MAP
     llm.ask, hands.run = stub.ask, stub.run
     kb.search = lambda name, q, k=5: []
     harvest.run = lambda *a, **k: ("nothing", "stub")
+    with open(os.path.join(ROOT, "config", "policy.json"), encoding="utf-8") as f:
+        shipped = json.load(f)
+    shipped["doors"]["console"]["build"] = console_build
+    shipped["doors"]["cli"]["build"] = console_build
+    patch = mock.patch.object(policy, "cfg", side_effect=lambda name: shipped if name == "policy.json" else util.cfg(name))
+    patch.start()
     try:
         yield stub
     finally:
+        patch.stop()
         kb._MAP, llm.ask, hands.run, kb.search, harvest.run = saved
 
 

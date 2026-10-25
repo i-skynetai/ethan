@@ -52,6 +52,14 @@ def main():
         print(f"ethan  › {msg.replace(work, '<demo>')}")
     router.handle("demo", ASK, reply, door="console", cwd=os.path.join(work, "shop"))
     show_log()
+    # Every door asks before a hand starts (config/policy.json, build: "ask"). The demo
+    # answers its own question, in the open, the way you would — the only thing it
+    # types for you. There is no silent approval anywhere else in Ethan.
+    from . import approvals
+    for waiting in approvals.pending("demo"):
+        print(f"you    › approve {waiting['id']}")
+        router.handle("demo", f"approve {waiting['id']}", reply, door="console", cwd=os.path.join(work, "shop"))
+        show_log()
     util.sink = None
 
     t = store.recent_tasks(1)[0]

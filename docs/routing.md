@@ -148,8 +148,9 @@ rights is *ask*, and sending in your name, pushing or merging, and starting or r
 a session are *never*. An unknown door may do nothing and an unknown action is never.
 Each action is enforced where it takes effect — a reminder in the clock, a status in the
 ledger reader, a relay in the relay, a watch in the watch, the phone in reach, filing in
-the close-out — and for every act but `relay_implementation`, *allow* and *ask* mean the
-same. The last three are promises Ethan keeps by having no code path for them.
+the close-out. *Ask* is a real confirmation step only for `relay_implementation` (and for a
+door's build level); for any other action it is refused with a message naming the gap,
+never read as *allow*. The last three are promises Ethan keeps by having no code path for them.
 `tests/test_policy.py` tries every *never* and every *ask*, and checks the promises.
 
 ## Who Ethan is when it acts
@@ -160,6 +161,30 @@ Everything it passes on says so: a relay ends with "Passed on by Ethan, for <own
 the console door", a brief to a hand opens with the same line under *From*, and a phone
 message starts with "Ethan:". The owner is `identity.owner` in `config/ethan.json` or
 `ETHAN_OWNER`; it is written, never guessed from the machine.
+
+## Approvals
+
+Where the policy says *ask*, Ethan does not act. It records exactly what it would do
+and tells you: "Approval #7 needed — start codex as reviewer in /w/shop for: review
+SHOP-7. Reply 'approve 7' or 'deny 7' here within 10 minutes. Nothing happens until
+then." Only those two words with the number count; a bare yes, a word in passing or a
+transcribed voice line confirms nothing. The answer must come through the same door and
+the same conversation that asked; a scheduled run can never answer. A yes is consumed
+once, atomically, so a second one does nothing; a deny, ten minutes, or a restart of
+Ethan ends it, and nothing that was waiting when Ethan last started is ever carried out.
+At the moment of the yes the current policy is checked again, and the act is the
+payload that was shown, not a re-reading of the ask. Every decision is a row in the
+ledger, and while an approval waits the close-out line says so.
+
+As shipped, every door asks before a hand is started (`"build": "ask"` for the console,
+the CLI and Telegram; backfill may not build), and handing a session implementation
+rights asks everywhere. Set a door's `build` to `"allow"` in `config/policy.json` if a
+typed ask at that door should be the yes; nothing is widened on your behalf. Only
+`relay_implementation` and the build levels have a confirmation step today: any other
+action set to `ask` is refused and says so, rather than quietly allowed. Until the console has a token
+([EH-042](../ROADMAP.md#eh-042)), a yes through the console or the CLI is as
+trustworthy as the loopback interface: any local process can post to `/api/ask` as the
+console door. Telegram approvals rest on its allow-list of user ids.
 
 ## Privacy classes
 

@@ -1,5 +1,5 @@
 """Shared helpers: .env loading, logging, HTTP."""
-import json, os, shutil, sys, urllib.request
+import json, os, shutil, sys, threading, urllib.request
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,13 +48,25 @@ def state_dir():
 #: When a list, log lines are collected here instead of printed. The demo uses it
 #: to show the route and the launch in its own words.
 sink = None
+_LOG_LOCK = threading.RLock()
+_LOG_OUTPUT = None
 
 
 def log(msg):
-    if sink is not None:
-        sink.append(msg)
-        return
-    print(f"[{datetime.now(timezone.utc).strftime('%H:%M:%SZ')}] {msg}", flush=True)
+    global _LOG_OUTPUT
+    from . import redact
+    # Diagnostics may include provider exception text. Never emit detected values.
+    with _LOG_LOCK:
+        if _LOG_OUTPUT is None:
+            _LOG_OUTPUT = redact.OutputStream()
+        msg = _LOG_OUTPUT.feed(str(msg))
+        if not msg:
+            return
+        msg = msg.rstrip("\n")
+        if sink is not None:
+            sink.append(msg)
+            return
+        print(f"[{datetime.now(timezone.utc).strftime('%H:%M:%SZ')}] {msg}", flush=True)
 
 
 def load_env():
