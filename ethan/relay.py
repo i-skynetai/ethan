@@ -42,7 +42,8 @@ def _bridge(*args, timeout=60):
     where = bridge_dir()
     if not where:
         raise RelayError("no message bridge is configured (set ETHAN_BRIDGE_DIR in .env)")
-    env = dict(os.environ)
+    from . import local_auth
+    env = local_auth.child_environment(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(filter(None, [where, env.get("PYTHONPATH")]))
     env.setdefault("PYTHONUTF8", "1")
     try:
@@ -252,12 +253,20 @@ def _text_of(row):
     return f"{row['ask']}\n\n(Passed on by {identity.stamp(row['door'])}.)"
 
 
-def dispatch(chat_id, door, target, text, mode, purpose=None):
+def dispatch(chat_id, door, target, text, mode, purpose=None, on_sent=None):
     """Send a relay that no door asked for in so many words — a watch's question, for
     example. Returns what to tell the person. `purpose` tags the row so `follow` knows
-    who reads the answer."""
+    who reads the answer. `on_sent(rid)`, when given, is called once with the exact row
+    id AFTER the one send attempt (so the row carries its target and message id when
+    the send was accepted), before this returns; it never blocks or repeats the send."""
     rid = store.add_relay(chat_id, door, text, mode, purpose=purpose)
-    return _dispatch_row(rid, target)
+    told = _dispatch_row(rid, target)
+    if on_sent is not None:
+        try:
+            on_sent(rid)
+        except Exception as e:
+            log(f"relay #{rid}: on_sent hook failed ({type(e).__name__})")
+    return told
 
 
 def _send(rid, target, reply):
@@ -501,6 +510,14 @@ def _check(r, deliver):
             fields["note"] = f"answer withheld: {', '.join(kinds)}"
     store.update_relay(r["id"], **fields)
     log(f"relay #{r['id']}: {r['message_id']} is now {state}")
+    if state == "completed" and r.get("purpose") == "chat":
+        # Only a gated, completed answer becomes selected-chat history; a withheld
+        # answer is `failed` above and never reaches this line.
+        try:
+            from . import selected_chat
+            selected_chat.record_answer(r["id"], fields["result"])
+        except Exception as e:
+            log(f"relay #{r['id']}: selected-chat answer not recorded ({type(e).__name__})")
     if (r.get("purpose") or "").startswith("watch:") and state in ("completed", "failed"):
         from . import watch                       # late: watch imports this module
         try:

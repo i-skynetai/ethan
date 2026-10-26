@@ -238,9 +238,121 @@ in an isolated ledger; desktop launcher reaches installed Edge and opens the HUD
 
 Verified dynamic editor: preview, apply, reload and rollback through real HTTP and rendered UI; invalid bindings, stale/replayed previews and foreign origins refused. Compact context survives a service restart and is recovered through the same console conversation.
 
-Remaining: credential ingress/output withholding review and full integrated
-suite after its changes; physical microphone/PTT/speaker and global-hotkey testing;
-wake recognition hardware verification; distributable wheel (host lacks setuptools); local API
-authentication; new official provider app-server UI adapter beyond existing session
-bridge. Do not describe those as complete. The screenshot is a working local preview,
-not final acceptance of every subsystem. Update evidence when these gates change.
+See the updated evidence boundaries and future roadmap below for current limitations.
+
+## Immersive visual revision — 25 October 2026
+
+Implemented presentation: continuous navy canvas; 330px core/rings at wide desktop,
+compact technical heading and edge panels; conversation/control dock below the core.
+No synthetic telemetry. Existing state, approvals, voice preview, settings and layout
+validation remain authoritative. Default composition receives the immersive arrangement;
+custom order/width/hide configurations retain the generic responsive renderer. Mobile
+stacks core then conversation before supporting panels. Reduced-motion rules remain.
+The new reference JPEGs could not be materialized locally because the supported Windows
+Library helper fails at os.setxattr. This revision follows parent-inspected references
+and the approved brief, not a claimed local pixel comparison.
+
+## Future interaction roadmap — planned, not implemented
+
+The following are design commitments for review, not active controls or capability claims.
+Ethan coordinates; agents reason using separately supplied tools. No new context engine,
+graph, harness, connector installation or permission grant is part of this roadmap work.
+
+| Phase | Screen / capability | Acceptance and release gate |
+| --- | --- | --- |
+| F1 | Streaming conversation | Ordered persisted event IDs, incremental visible answer text when provider actually supplies it, reconnect cursor and deduplication; queued/waiting state otherwise. Interrupted drafts remain visibly incomplete. No simulated typing as evidence of provider streaming. |
+| F1 | Conversation navigation | Expand dock into readable transcript; search/filter by task and scope, jump to original source event, pin results and copy safe text. Preserve draft and scroll position; unread count instead of forced autoscroll when reading older content. |
+| F2 | Task / evidence inspector | Select agent/task to see requested goal, public plan, executor, observed tools/actions, approvals, timestamps, outcomes, failures and verification evidence. Distinguish planned action from executed action and reported claim from verified result. |
+| F2 | Context inspector | Exact selected project/privacy/provider scope, included coordination records and source pointers, excluded legacy/unscoped context explanation, freshness/conflicts and bounded handoff preview. Edit via explicit draft/review; never recover historical permissions as authorization. |
+| F3 | On-demand statistics / charts | Agent proposes registered chart instances with typed data references, provenance, units, time range and freshness. User previews before pinning. Unknown data renders unavailable, never zero or fabricated values. No new connector access through a widget. |
+| F3 | Debug workspace | Correlated request/task/relay/event timeline, redacted errors, timeout/retry history, policy evaluation explanation and verification failures. Copy sanitized diagnostic bundle preview; no raw environment variables, credentials or unrestricted logs. |
+| F4 | Saved workspaces / comparison | Versioned named layouts scoped to project/privacy; preview/diff/rollback; side-by-side result evidence; keyboard navigation, mobile drill-in, screen reader table equivalents and performance budgets verified. |
+
+### Streaming contract and interaction details
+
+Future events: conversation_id, task_id, message_id, event_id, sequence, timestamp,
+source, scope, kind and bounded payload. Kinds include accepted, queued, started,
+answer_delta, tool_requested, tool_result, approval_requested, completed, interrupted
+and error. Persist sequence/cursor, deduplicate replay, reconcile terminal states from
+canonical ledger. Transport cancellation is not execution cancellation: show stop-requested
+until executor acknowledges. Retry is a new explicit action linked to the original,
+never resend automatically after uncertain delivery. Approval remains exact-action bound.
+Reconnect tests must cover partial text, duplicate/out-of-order events, stale token epoch,
+service restart, missing provider streaming, and no duplicate execution.
+
+Dock: live answer region with polite batched accessibility announcements; Pause following,
+Jump to latest, Expand transcript and task-linked result navigation. Escape closes an
+expanded view without cancelling tasks; separate labelled stop action when supported.
+Do not animate or announce every token. Voice transcripts stay editable previews and
+never auto-send; spoken output remains opt-in and stops on owner command.
+
+### Agent-requested data visualization contract
+
+Extend the existing registry only through reviewed code: approved initial future types
+could be metric, table, line, bar, timeline and evidence-list. Agent proposals are data,
+not executable code. A v2 proposal would declare widget_type, schema_version, instance_id,
+title, data_ref, source_refs, scope, units, range, generated_at, stale_after and refresh
+policy. Validate fixed fields/types/limits, known binding ID and read permission before
+rendering; never accept SQL, URLs, JS, HTML or arbitrary query expressions as bindings.
+Each data_ref resolves through an existing authorized bounded server adapter; apply privacy
+filters before aggregation. Restrict rows/series/points, time range and refresh frequency.
+No cross-project aggregation by default. Include empty/error/partial/stale/conflict states.
+Chart/table views must expose original sources and accessible values; generated labels
+are untrusted text. New executable widget or connector needs isolated implementation,
+tests/review and explicit approval for expanded capabilities.
+
+Examples: "Show this project's task completion trend" proposes a dated ledger-backed
+chart; "Compare these two results" proposes evidence rows with result references;
+"Show cost" reports unavailable unless an authorized provider supplies actual usage.
+Temporary views expire or are dismissed without changing the saved layout. Pinning uses
+validated preview/apply with revision checks. Schema migration retains prior valid version;
+unknown future types render a safe unsupported placeholder, not dynamic code loading.
+
+### Transparency, correction and confidence
+
+Show observable plan/status, tool actions, cited evidence, assumptions, concise decision
+summaries and verification failures. Do not expose or promise private chain of thought,
+invent a thinking transcript, or infer correctness from animation. Status labels are
+observations: queued, working, awaiting approval, blocked, interrupted, verified or failed.
+"Verified" names the check and scope; agent self-report is labelled separately.
+Owner can flag an incorrect assumption, attach correction/source, request recheck and
+approve/reject the exact next action. Corrections append attributable revisions; they
+do not erase prior audit evidence or silently dispatch a retry. No invented confidence
+percentages. Unknown/unverified evidence remains explicit.
+
+### Additional recommended phases and constraints
+
+After F1–F2, prioritize notification triage (quiet hours, acknowledged alerts), safe
+interruption/resume, searchable decision/result history and exportable sanitized evidence.
+Then consider resource budgets only from measured sources, workspace presets and read-only
+comparison panels. Defer ambient always-on voice, remote hosting and autonomous connector
+installation. Every phase requires scope isolation, provenance, stale/offline/restart
+tests, keyboard-only operation, 200% zoom, reduced motion and small-screen QA. Streaming
+and debug views must use existing coordination events, not a parallel scheduler or database.
+
+### Updated evidence boundaries
+
+Before this visual revision: 333 tests passed (2 skipped), lint and docs passed for the
+integrated auth preparation snapshot. Scoped continuity and existing-session nonce reply
+were verified separately; neither proves live token streaming. Packaging was verified in
+an isolated environment before auth preparation. Optional authentication is prepared,
+disabled in this preview and not activated. Physical microphone/speaker/hotkey/wake QA
+remains unperformed. The preview has isolated state and no configured agent registry.
+
+
+### Light theme and translucent surface revision
+
+Implemented: explicit top-bar Light theme / Dark theme toggle, saved only in the existing
+versioned browser display preference. Missing/unknown theme falls back dark; reset returns
+dark. Light theme uses a pale blue canvas, dark navy labels and teal/amber actions; the
+core remains luminous. Translucent panels use bounded blur with an opaque-enough gradient
+fallback. There are no new data bindings or microphone actions. Settings, dialogs,
+forms, errors and approval surfaces are themed too. Theme changes never change scope,
+policy, layout revision, provider, microphone state or access token.
+
+Final visual revision verification (2026-10-25): full aggregate suite ran 333 tests in
+24.159 seconds, OK with 2 skipped. Both themes inspected, mobile overflow absent,
+theme reload persistence and reduced motion verified. No new hardware audio or
+live-agent integration was exercised.
+
+Streaming work moved into the scoped [EH-080 implementation](EH-080-progressive-responses.md) on 26 October 2026. Request lifecycle infrastructure is tested; existing-session hooks and real progressive answer text remain incomplete. Other F1-F4 features stay planned.

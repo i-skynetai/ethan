@@ -9,6 +9,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
+from . import local_auth
 
 
 def local_url(value):
@@ -40,13 +41,15 @@ def browser_path():
 
 def reachable(url):
     # Local HTTP only; ignore proxy environment variables and never follow redirects.
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     try:
-        with opener.open(url + "api/state", timeout=1) as r:
+        with local_auth.request(local_url(url) + "api/state", timeout=1) as r:
             return r.status == 200 and isinstance(json.loads(r.read(1048576)), dict)
+    except local_auth.ConfigurationError:
+        raise
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            raise PermissionError("Local API authentication required; configure the explicit token for this client.") from e
+        return False
     except (OSError, ValueError, urllib.error.URLError):
         return False
 
@@ -56,13 +59,8 @@ def voice_command(url, action):
     url = local_url(url)
     if action not in ("start", "stop", "cancel", "mute", "unmute"):
         raise ValueError("unknown voice action")
-    request = urllib.request.Request(url + "api/voice/" + action, b"{}",
-                                     {"Content-Type": "application/json"}, method="POST")
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-    with opener.open(request, timeout=3) as r:
+    with local_auth.request(url + "api/voice/" + action, data=b"{}",
+                            headers={"Content-Type": "application/json"}, method="POST", timeout=3) as r:
         return json.loads(r.read(65536))
 
 
@@ -111,14 +109,25 @@ def main(argv=None):
     browser = browser_path()
     if a.check:
         from . import voice
-        print(json.dumps({"browser_available": bool(browser), "service_reachable": reachable(url),
+        auth_error = None
+        try:
+            up = reachable(url)
+        except (PermissionError, local_auth.ConfigurationError) as e:
+            up, auth_error = False, str(e)
+        print(json.dumps({"browser_available": bool(browser), "service_reachable": up,
+                          "authentication_error": auth_error,
                           "voice": voice.status(),
                           "wake_word": "explicit local opt-in; hey Ethan; 60-second window; hardware unverified"}))
         return 0
     if not browser:
         print("No supported installed Edge/Chrome desktop browser found; no browser was installed.", file=sys.stderr)
         return 1
-    if not reachable(url):
+    try:
+        up = reachable(url)
+    except (PermissionError, local_auth.ConfigurationError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    if not up:
         if not a.start_service:
             print("Ethan is not reachable. Start ethan-service, or use --start-service explicitly.", file=sys.stderr)
             return 1
@@ -137,7 +146,8 @@ def main(argv=None):
             service.wait(timeout=5)
             print("Python service did not become reachable; stopped the launcher-owned process.", file=sys.stderr)
             return 1
-    subprocess.Popen([browser, "--app=" + url, "--no-first-run"], close_fds=True)
+    subprocess.Popen([browser, "--app=" + url, "--no-first-run"], close_fds=True,
+                     env=local_auth.child_environment())
     print("Opened local Ethan HUD. The backend remains independent of the browser window.")
     if a.global_ptt:
         try:

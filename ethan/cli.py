@@ -10,6 +10,7 @@ Ethan must already be running — it owns the hands and the kbs. This is only a
 client: it posts the ask and follows the replies until the work is finished.
 """
 import argparse, json, os, sys, time, urllib.error, urllib.request
+from . import local_auth
 
 PORT = os.environ.get("ETHAN_CONSOLE_PORT", "8787")
 BASE = f"http://127.0.0.1:{PORT}"
@@ -17,14 +18,13 @@ DONE = ("Session can close", "Not closing")     # Ethan's close-out lines
 
 
 def get(path, timeout=20):
-    with urllib.request.urlopen(BASE + path, timeout=timeout) as r:
+    with local_auth.request(BASE + path, timeout=timeout) as r:
         return json.loads(r.read().decode())
 
 
 def post(path, body, timeout=15):
-    req = urllib.request.Request(BASE + path, data=json.dumps(body).encode(), method="POST")
-    req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with local_auth.request(BASE + path, data=json.dumps(body).encode(), method="POST",
+                            headers={"Content-Type": "application/json"}, timeout=timeout) as r:
         return json.loads(r.read().decode())
 
 
@@ -76,6 +76,12 @@ def main():
 
     try:
         get("/api/state", timeout=4)
+    except local_auth.ConfigurationError:
+        sys.exit("ethan: invalid local API token configuration; no request was sent")
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            sys.exit("ethan: local API authentication required; configure the owner-provided token for this client")
+        sys.exit(f"ethan: local service refused the check (HTTP {e.code})")
     except Exception:
         sys.exit(f"ethan: not running on {BASE}\n  start it: `ethan-service` (or ./run.sh from a checkout)")
 

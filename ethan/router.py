@@ -108,7 +108,8 @@ def _model_route(text, bmap, choices, has_prior):
 CLOSE_OUT = ("Session can close", "Not closing")
 
 
-def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=False, chat_provider_ref=None):
+def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=False, chat_provider_ref=None,
+           chat_privacy=None):
     """Process one ask. reply(str) sends back through the originating door.
 
     cwd, when given, is where the CALLER is working. It wins over the kb's
@@ -126,6 +127,12 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=Fa
     chat_provider_ref: an explicit "agent:native_id" the person selected to talk to.
     Rules run first; whatever they do not handle goes to that session as a review-only
     relay, with no model classification. An invalid selection refuses, with no fallback.
+
+    chat_privacy ("personal" | "work" | "client"), together with an absolute cwd, scopes
+    a selected-session conversation: the ask then carries bounded, untrusted reference
+    to earlier completed turns in that exact conversation, project, privacy class, door
+    and session (ethan/selected_chat.py). Both absent means the current ask only; one
+    without the other, or an invalid value, refuses clearly and sends nothing.
 
     An ask that carries what looks like a credential (ethan/redact.py's recognised
     patterns, nothing more) is refused before anything is stored, routed or sent, and
@@ -152,7 +159,7 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=Fa
         log(f"ask refused: recognised secret ({', '.join(kinds)}) in the text")
     else:
         try:
-            _handle(chat_id, text, send, door, cwd, scheduled, chat_provider_ref)
+            _handle(chat_id, text, send, door, cwd, scheduled, chat_provider_ref, chat_privacy)
         except Exception as e:                  # a bad ask must still be answered
             log(f"ask failed: {type(e).__name__}: {e}")
             send(f"error: {e}")
@@ -163,7 +170,7 @@ def handle(chat_id, text, reply, door="telegram-private", cwd=None, scheduled=Fa
 
 
 
-def _handle(chat_id, text, reply, door, cwd, scheduled=False, chat_provider_ref=None):
+def _handle(chat_id, text, reply, door, cwd, scheduled=False, chat_provider_ref=None, chat_privacy=None):
     history = store.recent(chat_id)              # read before this ask is stored
     store.remember(chat_id, "user", text)        # stored once, whatever the door
     # Passing an ask to a session that is already running is decided before any
@@ -191,13 +198,29 @@ def _handle(chat_id, text, reply, door, cwd, scheduled=False, chat_provider_ref=
         if scheduled:
             reply("A scheduled run cannot talk to a selected session. Nothing was sent.")
             return
-        from . import providers
+        from . import providers, selected_chat
         try:
             target = providers.resolve(chat_provider_ref)
         except providers.SelectionError as e:
             reply(f"No session selected: {e}. Nothing was sent, and nothing was started.")
             return
-        reply(relay.dispatch(chat_id, door, target, text, "review-only", purpose="chat"))
+        try:
+            scope = selected_chat.scope(chat_id, cwd, chat_privacy, door, chat_provider_ref)
+            payload = selected_chat.compose(scope, text)      # the original ask stays verbatim
+        except selected_chat.ScopeError as e:
+            reply(f"Not sent: {e} Nothing was sent, and nothing was started.")
+            return
+
+        def link(rid):
+            # Called after the one send attempt: the turn is recorded against the exact
+            # row that was sent, never a "latest" row. A row that was refused or waits
+            # for approval has no message id and is not a turn; the helper says so.
+            try:
+                selected_chat.record_ask(scope, text, rid)
+            except selected_chat.ScopeError as e:
+                log(f"relay #{rid}: selected-chat turn not recorded ({e})")
+                reply(f"(Relay #{rid}: this turn was not added to the scoped history.)")
+        reply(relay.dispatch(chat_id, door, target, payload, "review-only", purpose="chat", on_sent=link))
         return
     bmap = kb.kb_map()
     hinted, hinted_hand = _hint_kbs(text), _hint_hand(text)

@@ -44,3 +44,30 @@ tamper-proof log.
 Module tests verify restart retention and isolation without fetching source documents
 or launching agents. Router/brief integration and end-to-end interruption tests must
 pass before treating the source module as a completed user flow.
+
+## Selected-session conversation
+
+The scoped selected-chat helper uses an explicit absolute project directory, privacy
+(`personal`, `work` or `client`), conversation, originating door and selected provider
+reference. Both project and privacy absent means the current ask only. Partial or
+invalid scope is refused; Ethan never assigns old messages to today's project.
+
+Legacy conversation messages lack this scope and are excluded entirely. New completed
+selected-chat turns can be recorded in the same canonical ledger, linked to the exact
+relay ID. Only safe completed answers join future references. Repeated recording and
+a fast answer arriving before the scope link do not send another ask or duplicate a
+turn. A restart retains these scoped records without dispatching anything.
+
+The original ask is kept verbatim in its own section, with a 12,000-character limit
+that refuses longer asks rather than shortening them. At most 5,000 additional
+characters contain recent completed scoped turns and compact coordination records,
+including record IDs, source pointers and timestamps. They are explicitly untrusted
+reference, never policy or approval. Recognized credentials are excluded; source
+contents are not fetched. History is further isolated by the selected provider.
+
+The helper, router, relay and console seams pass offline integration checks. A fresh
+Python process reopens the ledger and routes a new ask carrying only its scoped
+references through a fake bridge; repeated follow passes do not send it again.
+The existing-session live chat path separately returned the approved test reply.
+That live test did not exercise scoped context; no live context-continuity claim is
+made from the offline fixtures.

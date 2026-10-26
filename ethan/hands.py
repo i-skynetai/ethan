@@ -26,7 +26,7 @@ new — `kb` and `kind` — and three keys are added to the result: `sky_run_id`
 """
 import itertools, json, os, shutil, subprocess, sys, threading, time
 from .util import cfg, log, state_dir
-from . import identity, redact, store
+from . import identity, local_auth, redact, store
 from .kb import kb_map_path          # imported by name: `kb` is a parameter here
 
 #: What `sky build` may inherit from Ethan. Listed, not filtered: a filter has
@@ -131,7 +131,7 @@ def build_env(conf, kb_entry=None):
         pat_env = kb_entry.get("pat_env")
         if pat_env and os.environ.get(pat_env):
             env[pat_env] = os.environ[pat_env]
-    return env
+    return local_auth.child_environment(env)
 
 
 def parse_result(text):

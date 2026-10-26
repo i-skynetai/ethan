@@ -61,11 +61,13 @@ deployment, spending, installs and credential changes remain outside this change
 | EH-071 | Personal assistant phased design and ownership agreement | planning | P1 | L | In progress — planning only | Codex (ethan), 2026-10-25 |
 | EH-072 | Loopback Host and console body/offset validation | trust | P0 | S | In progress — implementation verified, awaiting final review | Codex (coordinator), 2026-10-25 |
 | EH-073 | Durable action approvals at every execution boundary | trust | P1 | L | In review | Claude (ethan), 2026-10-25 |
-| EH-074 | Explicit existing-session conversation through the shared router | integration | P1 | M | In review — offline path verified; live general-chat answer pending | Codex (ethan), 2026-10-25 |
-| EH-075 | [Shared navy/cyan HUD with truthful states and validated saved widget layouts](docs/features/EH-075-hud-design.md) | doors | P1 | L | In progress — authorised substitute reference inspected | Codex (coordinator), 2026-10-25 |
+| EH-074 | Explicit existing-session conversation through the shared router | integration | P1 | M | In review — live chat reply verified; scoped continuity verified offline | Codex (ethan), 2026-10-25 |
+| EH-075 | [Shared HUD with truthful states, saved layouts and dark/light themes](docs/features/EH-075-hud-design.md) | doors | P1 | L | In progress — visual revision verified; future interactions planned only | Codex (coordinator), 2026-10-25 |
 | EH-076 | Desktop lifecycle around the Python service | distribution | P2 | L | In progress | Codex (ethan), 2026-10-25 |
 | EH-077 | Local voice, push-to-talk, then optional wake word | doors | P2 | L | In progress — local PTT and opt-in wake controls wired and tested; hardware QA pending | Codex (ethan), 2026-10-25 |
 | EH-078 | Durable coordination and source pointers through the canonical ledger | coordination | P1 | M | In review — restart and integrated seam verified | Codex (ethan), 2026-10-25 |
+| EH-079 | [Optional local API bearer authentication preparation](docs/authentication.md) | trust | P1 | M | In progress — synthetic tests; no live activation or persistent credentials | Codex (ethan) + coordinator, 2026-10-25 |
+| EH-080 | [Persisted conversation events and honest provider streaming capabilities](docs/features/EH-080-progressive-responses.md) | doors | P1 | L | In progress — helper and HTTP/UI verified; router/relay hooks blocked on owner response; no live text deltas | Codex (ethan) + coordinator + Claude (router/relay), 2026-10-26 |
 
 EH-072 owns only `ethan/door_console.py` and `tests/test_console_boundary.py`.
 Acceptance: validate Host against the bound loopback address and port on GET and
@@ -109,6 +111,12 @@ explicit application. Revisions and chat/door/expiry-bound previews live in the 
 SQLite ledger; stale/replayed applications are refused and rollback validates the
 previous revision. Ten isolated tests and Ruff pass; HUD/API integration remains
 with the coordinator and the non-scheduled router hook with Claude (ethan).
+
+EH-075's [future interaction roadmap](docs/features/EH-075-hud-design.md#future-interaction-roadmap--planned-not-implemented)
+is planning only: F1 covers real streaming and conversation navigation; F2 covers
+task/evidence and scoped-context inspectors; F3 covers typed charts and redacted
+debug timelines; F4 covers saved workspaces, comparison and accessibility. These are
+future phases within EH-075, not implemented capabilities or new backend assignments.
 
 ### Personal assistant console
 
@@ -588,9 +596,13 @@ from another door or another user is refused.
 can follow the log; Telegram and the CLI cannot. A short update — the phase or the last
 line, checked for secrets — every few minutes. Input during a run stays closed.
 
-<a id="eh-042"></a>**EH-042 — A console token.** Any process on the machine can call the
-console API. *Done when:* the service writes a random token under `state/` at start; the
-page and `bin/ethan` send it; a call without it gets 401. *Depends on:* EH-005.
+<a id="eh-042"></a>**EH-042 — A console token.** Without optional authentication, any
+local process can call the console API. EH-079 prepares explicit environment-backed
+bearer verification and client controls using synthetic tests only. The earlier
+proposal to generate and persist a random token under `state/` is not implemented.
+Live activation, credential persistence and client grants still require a maintainer
+decision; same-user process compromise is outside this bearer boundary. *Depends on:*
+EH-005. See [authentication preparation](docs/authentication.md).
 
 <a id="eh-043"></a>**EH-043 — Recurring asks.** There is no scheduler, by design — Ethan
 does not act without a door. *Decision needed:* whether it ever should, and what it may

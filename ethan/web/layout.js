@@ -7,6 +7,7 @@ for(const type of ['agents','core','tasks','conversation','approvals','activity'
 }
 function renderLayout(layout) {
   const grid=document.querySelector('.dashboard');grid.classList.add('dynamic-layout');
+  grid.classList.toggle('immersive-default', layout.widgets.map(w=>w.type+':'+w.width).join(',')==='agents:1,core:2,tasks:1,conversation:2,approvals:1,activity:1');
   const present=new Set(layout.widgets.map(w=>w.type));
   for(const [type,el] of layoutNodes) el.hidden=!present.has(type);
   for(const w of layout.widgets) {

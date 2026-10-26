@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+from . import local_auth
 
 _LOCK = threading.RLock()
 _CAPS = None
@@ -62,7 +63,7 @@ def capabilities():
         else:
             try:
                 p = subprocess.run(_args("capabilities"), capture_output=True, text=True,
-                                   encoding="utf-8-sig", timeout=10, **_flags())
+                                   encoding="utf-8-sig", timeout=10, env=local_auth.child_environment(), **_flags())
                 data = json.loads(p.stdout.strip())
                 if p.returncode or not isinstance(data, dict):
                     raise ValueError("local speech capability probe failed")
@@ -155,7 +156,7 @@ def command(action):
                     waking = action == "wake-enable"
                     _PROCESS = subprocess.Popen(_args("wake" if waking else "capture"), stdin=subprocess.PIPE,
                                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                                text=True, encoding="utf-8-sig", **_flags())
+                                                text=True, encoding="utf-8-sig", env=local_auth.child_environment(), **_flags())
                     _STATE.update(state="starting", wake_enabled=waking, transcript="",
                                   detail="Starting local wake listening (60 seconds maximum)" if waking else "Starting local microphone")
                     threading.Thread(target=_read, args=(_PROCESS,), daemon=True).start()

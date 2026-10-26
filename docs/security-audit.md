@@ -70,7 +70,9 @@ skips explicitly when Node is absent. The integrated snapshot passed 295 tests w
 - Microphone hardware behavior and wake-word recognition remain unverified. The
   opt-in local wake module has fake-process lifecycle tests, not microphone tests;
   it is off by default and does not rearm. A distributable desktop build and an
-  external security assessment also remain unverified.
+  external security assessment also remain unverified. An isolated wheel/sdist build,
+  wheel install and packaged asset checks were subsequently verified by the
+  coordinating session; this does not verify microphone hardware behavior.
 
 ## Integration ownership
 
@@ -86,5 +88,8 @@ invalid references refuse, and a missing router hook returns HTTP 503. Argument
 forwarding is tested with a stub. This is not a completed general-chat round trip:
 the real router hook now dispatches selected conversation through the review-only
 relay gate without a model key; its offline seam tests pass. A live general-chat
-answer remains separate verification. No new session,
+answer was subsequently verified using one approved harmless request through the
+existing Claude session and the real relay follower back to the originating console.
+Scoped context continuity has separate offline restart/router tests; that live
+request did not test scoped context. No new session,
 provider authentication or credential copying is implied by selection.

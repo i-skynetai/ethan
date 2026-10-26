@@ -86,6 +86,22 @@ class HudHTTP(unittest.TestCase):
             door_console._ask('hello', 'console', 'C:/project', 'console', 'claude:test')
         self.assertEqual(called, [('console', 'hello', 'console', 'C:/project', 'claude:test')])
 
+    def test_selected_chat_forwards_explicit_privacy_without_changing_scope(self):
+        calls = []
+        def handle(chat, text, reply, door=None, cwd=None, chat_provider_ref=None, chat_privacy=None):
+            calls.append((chat, text, door, cwd, chat_provider_ref, chat_privacy))
+        with mock.patch.object(door_console.router, 'handle', handle), mock.patch.object(door_console.store, 'note_desktop'):
+            door_console._ask('hello', 'console', 'C:/project', 'console', 'claude:test', 'work')
+        self.assertEqual(calls, [('console', 'hello', 'console', 'C:/project', 'claude:test', 'work')])
+
+    def test_selected_chat_scope_rejects_partial_or_invalid_metadata(self):
+        from ethan import providers
+        with mock.patch.object(providers, 'resolve', return_value={}), mock.patch.object(door_console, '_ask') as ask:
+            for extra in ({'chat_privacy': 'personal'}, {'cwd': 'relative', 'chat_privacy': 'personal'}, {'cwd': 'C:/project'}, {'cwd': 'C:/project', 'chat_privacy': 'unknown'}, {'chat_privacy': 1}):
+                code, _, _ = self.request('/api/ask', {'text': 'hello', 'chat_provider_ref': 'claude:test', **extra})
+                self.assertEqual(code, 400)
+            ask.assert_not_called()
+
     def test_voice_errors_are_reported_without_internal_details(self):
         with mock.patch.object(voice, 'command', side_effect=RuntimeError('private path')):
             code, _, data = self.request('/api/voice/start', {})

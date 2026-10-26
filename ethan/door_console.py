@@ -40,7 +40,7 @@ def _door(raw):
     return raw if raw in DOORS else CHAT
 
 
-def _ask(text, chat=CHAT, cwd=None, door=CHAT, chat_provider_ref=None):
+def _ask(text, chat=CHAT, cwd=None, door=CHAT, chat_provider_ref=None, chat_privacy=None, request_id=None):
     """Run one ask in the background; replies land in the pull queue.
 
     The ask is stored by router.handle, not here: storing it twice used to put it
@@ -50,8 +50,14 @@ def _ask(text, chat=CHAT, cwd=None, door=CHAT, chat_provider_ref=None):
         _ACTIVE += 1
     store.note_desktop()                          # you are at the laptop: reach.away() reads this
     def reply(msg):
-        store.add_reply(chat, msg)
+        from . import conversation_events as events
+        with store._LOCK:
+            if request_id is None or events.record_reply(request_id, msg):
+                store.add_reply(chat, msg)
     try:
+        from . import conversation_events as events
+        if request_id is not None and not events.should_deliver(request_id):
+            return
         ask = text.strip().lower().rstrip("?.!")
         if ask in ("help", "what can you do", "what can you do for me", "show connected agents", "show my agents", "status"):
             store.remember(chat, "user", text)
@@ -66,13 +72,31 @@ def _ask(text, chat=CHAT, cwd=None, door=CHAT, chat_provider_ref=None):
         options = {"door": door, "cwd": cwd}
         if chat_provider_ref:
             options["chat_provider_ref"] = chat_provider_ref
+            if chat_privacy is not None:
+                options["chat_privacy"] = chat_privacy
         router.handle(chat, text, reply, **options)
     except Exception as e:                      # never let a bad ask kill the door
-        store.add_reply(chat, f"error: {e}")
+        reply("The local request failed. Check the service diagnostics.")
+        if request_id is not None:
+            events.fail(request_id, "The local request failed.")
         log(f"console ask failed: {e}")
     finally:
         with _ACTIVITY_LOCK:
             _ACTIVE -= 1
+
+
+def _request_worker(request_id, text, cwd, provider_ref, privacy):
+    from . import conversation_events as events
+    if not events.claim(request_id):
+        return
+    try:
+        with events.active_request(request_id):
+            if events.should_deliver(request_id):
+                _ask(text, CHAT, cwd, CHAT, provider_ref, privacy, request_id)
+    except Exception:
+        events.fail(request_id, "The local request failed.")
+    finally:
+        events.finish(request_id)
 
 
 def _pending_approvals():
@@ -98,7 +122,8 @@ def _state():
         "relays": store.recent_relays(20),
         "scheduled": clock.scheduled(),
         "presence": "working" if pending else "handling" if active else "ready",
-        "setup": {"router_key": bool(os.environ.get("OPENAI_API_KEY")),
+        "setup": {"response_tracking": bool(getattr(router, "RESPONSE_EVENTS_SUPPORTED", False)),
+                  "router_key": bool(os.environ.get("OPENAI_API_KEY")),
                   "local_kb": any(b.get("folder") for b in bmap.values()),
                   "bridge": bool(os.environ.get("ETHAN_BRIDGE_DIR"))},
         "approvals_supported": True,
@@ -159,8 +184,17 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def _authenticated(self):
+        if not urlparse(self.path).path.startswith("/api/"):
+            return True
+        if self.server.local_auth.authorized(self.headers):
+            return True
+        self.close_connection = True
+        self._send(401, json.dumps({"error": "Local API authentication required."}))
+        return False
+
     def do_GET(self):
-        if not self._trusted_host():
+        if not self._trusted_host() or not self._authenticated():
             return
         u = urlparse(self.path)
         q = parse_qs(u.query, keep_blank_values=True)
@@ -175,6 +209,20 @@ class Handler(BaseHTTPRequestHandler):
                 name = u.path.rsplit("/", 1)[1]
                 with open(os.path.join(WEB, name), "rb") as asset:
                     return self._send(200, asset.read(), "text/css; charset=utf-8" if name.endswith(".css") else "text/javascript; charset=utf-8")
+            if u.path == "/api/requests":
+                from . import conversation_events as events
+                if set(q) - {"request_id", "after"} or len(q.get("request_id", [])) != 1:
+                    return self._send(400, json.dumps({"error": "Invalid request identity or cursor."}))
+                request_id = q["request_id"][0]
+                if not re.fullmatch(r"[0-9a-f]{32}", request_id):
+                    return self._send(400, json.dumps({"error": "Invalid request identity."}))
+                try:
+                    result = events.events(request_id, CHAT, CHAT, int(q.get("after", ["0"])[0]))
+                    return self._send(200, json.dumps(result))
+                except events.NotFound:
+                    return self._send(404, json.dumps({"error": "Request not found in this conversation."}))
+                except ValueError:
+                    return self._send(400, json.dumps({"error": "Invalid event cursor."}))
             if u.path == "/api/layout":
                 from . import layouts
                 return self._send(200, json.dumps({**layouts.current(), "registry": layouts.registry()}))
@@ -240,7 +288,7 @@ class Handler(BaseHTTPRequestHandler):
         return None
 
     def do_POST(self):
-        if not self._trusted_host():
+        if not self._trusted_host() or not self._authenticated():
             return
         upath = urlparse(self.path).path
         refused = self._refuse_post()
@@ -252,7 +300,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(n) or b"{}")
             if not isinstance(payload, dict):
                 raise ValueError("expected an object")
-            for key in ("text", "chat", "cwd", "door", "path", "doc_type", "chat_provider_ref"):
+            for key in ("text", "chat", "cwd", "door", "path", "doc_type", "chat_provider_ref", "chat_privacy"):
                 if key in payload and payload[key] is not None and not isinstance(payload[key], str):
                     raise ValueError(f"{key} must be a string")
         except (ValueError, UnicodeError):
@@ -281,6 +329,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(voice.command(upath.rsplit("/", 1)[1])))
             except (OSError, RuntimeError, ValueError):
                 return self._send(503, json.dumps({"error": "Local voice command failed. Check local speech support."}))
+        if upath in ("/api/requests", "/api/requests/cancel"):
+            return self._response_request(upath, payload)
         if upath == "/api/ingest":
             pl = payload
             chat = _chat_id(pl.get("chat"))
@@ -301,32 +351,86 @@ class Handler(BaseHTTPRequestHandler):
             chat = _chat_id(payload.get("chat"))
             door = _door(payload.get("door"))
             cwd = payload.get("cwd") or None
-            if cwd and not os.path.isdir(os.path.expanduser(cwd)):
+            if cwd and not payload.get("chat_provider_ref") and not os.path.isdir(os.path.expanduser(cwd)):
                 cwd = None                      # a bad path must not strand the hand
         except Exception:
             text, chat, cwd, door = "", CHAT, None, CHAT
         if not text:
             return self._send(400, json.dumps({"error": "empty ask"}))
         provider_ref = payload.get("chat_provider_ref")
+        chat_privacy = payload.get("chat_privacy")
         if provider_ref:
             import inspect
             from . import providers
             try:
                 providers.resolve(provider_ref)
+                from . import selected_chat
+                selected_chat.scope(chat, cwd, chat_privacy, door, provider_ref)
             except ValueError:
-                return self._send(400, json.dumps({"error": "Selected session is unavailable or ambiguous. Choose a current registered session."}))
-            if "chat_provider_ref" not in inspect.signature(router.handle).parameters:
+                return self._send(400, json.dumps({"error": "Selected session or project/privacy scope is invalid. Choose a current session and both an absolute project directory and privacy, or neither."}))
+            if ("chat_provider_ref" not in inspect.signature(router.handle).parameters
+                    or (chat_privacy is not None and "chat_privacy" not in inspect.signature(router.handle).parameters)):
                 return self._send(503, json.dumps({"error": "Selected-session chat integration is not available in this running service yet."}))
-        args = (text, chat, cwd, door, provider_ref) if provider_ref else (text, chat, cwd, door)
+        args = ((text, chat, cwd, door, provider_ref, chat_privacy) if chat_privacy is not None
+                else (text, chat, cwd, door, provider_ref)) if provider_ref else (text, chat, cwd, door)
         threading.Thread(target=_ask, args=args, daemon=True).start()
         return self._send(200, json.dumps({"ok": True, "chat": chat, "cwd": cwd, "door": door}))
+
+    def _response_request(self, path, payload):
+        from . import conversation_events as events
+        request_id = payload.get("request_id")
+        if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-f]{32}", request_id):
+            return self._send(400, json.dumps({"error": "Use a 32-character request identity."}))
+        if path.endswith("/cancel"):
+            if set(payload) != {"request_id"}:
+                return self._send(400, json.dumps({"error": "Send only the request identity."}))
+            try:
+                return self._send(200, json.dumps(events.cancel(request_id, CHAT, CHAT)))
+            except (ValueError, LookupError):
+                return self._send(404, json.dumps({"error": "Request not found in this conversation."}))
+        allowed = {"request_id", "text", "cwd", "chat_provider_ref", "chat_privacy"}
+        text, cwd = payload.get("text"), payload.get("cwd")
+        provider, privacy = payload.get("chat_provider_ref"), payload.get("chat_privacy")
+        if (set(payload) - allowed or not isinstance(text, str) or not text.strip()
+                or len(text) > 12000 or any(v is not None and not isinstance(v, str)
+                                          for v in (cwd, provider, privacy))):
+            return self._send(400, json.dumps({"error": "Invalid request inputs."}))
+        try:
+            from . import redact, selected_chat, providers
+            if redact.find(text):
+                raise ValueError("credential")
+            if provider:
+                providers.resolve(provider)
+                selected_chat.scope(CHAT, cwd, privacy, CHAT, provider)
+            elif privacy is not None:
+                raise ValueError("privacy requires an explicit selected session")
+        except ValueError:
+            return self._send(400, json.dumps({"error": "Request contains a detected credential or invalid session/scope."}))
+        if not getattr(router, "RESPONSE_EVENTS_SUPPORTED", False):
+            return self._send(503, json.dumps({"error": "Response lifecycle integration is unavailable in this running service."}))
+        try:
+            result = events.create(request_id, CHAT, CHAT, {"text": text, "cwd": cwd,
+                                   "chat_provider_ref": provider, "chat_privacy": privacy})
+        except ValueError as exc:
+            conflict = type(exc).__name__ == "Conflict"
+            return self._send(409 if conflict else 400, json.dumps({"error":
+                "Request identity already belongs to different inputs." if conflict else "Invalid request."}))
+        if result["created"]:
+            threading.Thread(target=_request_worker,
+                             args=(request_id, text, cwd, provider, privacy), daemon=True).start()
+        return self._send(200, json.dumps(result))
 
 
 def open_server(port=None):
     """Bind the port now, so a port already in use fails here, loudly, and not
     inside a thread nobody is watching."""
     port = port if port is not None else int(os.environ.get("ETHAN_CONSOLE_PORT", "8787"))
+    from .local_auth import Auth
+    auth = Auth.from_environment()  # Explicit startup snapshot; never creates or persists a token.
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    from . import conversation_events
+    conversation_events.startup_recover()
+    srv.local_auth = auth
     srv.daemon_threads = True
     log(f"console door open: http://127.0.0.1:{srv.server_address[1]}")
     return srv
